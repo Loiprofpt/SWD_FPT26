@@ -25,15 +25,18 @@ export default function Header() {
     { to: '/products', label: 'Sản phẩm' },
   ];
 
+  const isHome = location.pathname === '/';
+  const isTransparent = isHome && !scrolled;
+
   return (
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: 'spring', stiffness: 100, damping: 20 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? 'bg-white/90 backdrop-blur-xl shadow-lg shadow-primary/5'
-          : 'bg-transparent'
+        isTransparent
+          ? 'bg-transparent'
+          : 'bg-white/90 backdrop-blur-xl shadow-lg shadow-primary/5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -48,7 +51,7 @@ export default function Header() {
               <span className="text-white font-bold text-lg">S</span>
             </motion.div>
             <span className={`text-xl font-bold transition-colors duration-300 ${
-              scrolled ? 'text-primary' : 'text-white'
+              isTransparent ? 'text-white' : 'text-primary'
             }`}>
               STEM<span className="text-secondary">Shop</span>
             </span>
@@ -63,9 +66,9 @@ export default function Header() {
                 className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                   location.pathname === link.to
                     ? 'text-secondary'
-                    : scrolled
-                    ? 'text-gray-600 hover:text-primary'
-                    : 'text-white/80 hover:text-white'
+                    : isTransparent
+                    ? 'text-white/80 hover:text-white'
+                    : 'text-gray-600 hover:text-primary'
                 }`}
               >
                 {link.label}
@@ -84,7 +87,7 @@ export default function Header() {
             <Link
               to="/cart"
               className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                scrolled ? 'text-gray-600 hover:text-primary' : 'text-white/80 hover:text-white'
+                isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-primary'
               }`}
             >
               Giỏ hàng
@@ -108,7 +111,7 @@ export default function Header() {
                 )}
                 <div className="relative group">
                   <button className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
-                    scrolled ? 'text-primary' : 'text-white'
+                    isTransparent ? 'text-white' : 'text-primary'
                   }`}>
                     <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
                       <span className="text-white text-sm font-bold">
@@ -135,7 +138,7 @@ export default function Header() {
                 <Link
                   to="/login"
                   className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
-                    scrolled ? 'text-primary hover:bg-primary/5' : 'text-white hover:bg-white/10'
+                    isTransparent ? 'text-white hover:bg-white/10' : 'text-primary hover:bg-primary/5'
                   }`}
                 >
                   Đăng nhập
@@ -151,19 +154,19 @@ export default function Header() {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className={`md:hidden p-2 rounded-lg transition-colors ${
-              scrolled ? 'text-primary' : 'text-white'
+              isTransparent ? 'text-white' : 'text-primary'
             }`}
           >
             <div className="w-6 h-5 flex flex-col justify-between">
               <span className={`block h-0.5 rounded transition-all duration-300 ${
                 mobileOpen ? 'rotate-45 translate-y-2' : ''
-              } ${scrolled ? 'bg-primary' : 'bg-white'}`} />
+              } ${isTransparent ? 'bg-white' : 'bg-primary'}`} />
               <span className={`block h-0.5 rounded transition-all duration-300 ${
                 mobileOpen ? 'opacity-0' : ''
-              } ${scrolled ? 'bg-primary' : 'bg-white'}`} />
+              } ${isTransparent ? 'bg-white' : 'bg-primary'}`} />
               <span className={`block h-0.5 rounded transition-all duration-300 ${
                 mobileOpen ? '-rotate-45 -translate-y-2' : ''
-              } ${scrolled ? 'bg-primary' : 'bg-white'}`} />
+              } ${isTransparent ? 'bg-white' : 'bg-primary'}`} />
             </div>
           </button>
         </div>
