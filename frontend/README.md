@@ -1,36 +1,16 @@
-# OhStem - STEM Shop Web
+# React + Vite
 
-OhStem là một dự án website bán đồ STEM, cung cấp các sản phẩm giáo dục STEM cho học sinh, giáo viên và các nhà trường. Dự án này được phát triển với mục tiêu mang đến trải nghiệm mua sắm trực tuyến hiện đại, tiện lợi và thân thiện với người dùng.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Tính năng chính
-- Xem danh mục sản phẩm STEM đa dạng
-- Tìm kiếm, lọc và xem chi tiết sản phẩm
-- Thêm sản phẩm vào giỏ hàng và đặt hàng trực tuyến
-- Đăng ký, đăng nhập và quản lý tài khoản người dùng
-- Quản lý đơn hàng và lịch sử mua hàng
-- Giao diện thân thiện, dễ sử dụng trên cả máy tính và thiết bị di động
+Currently, two official plugins are available:
 
-## Công nghệ sử dụng
-- ReactJS (hoặc framework frontend phù hợp)
-- HTML, CSS, JavaScript
-- Kết nối API với backend để lấy dữ liệu sản phẩm, đơn hàng, người dùng
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Cách chạy dự án frontend
-1. Cài đặt Node.js và npm (nếu chưa có)
-2. Mở terminal tại thư mục `frontend`
-3. Cài đặt các package cần thiết:
-   ```bash
-   npm install
-   ```
-4. Chạy ứng dụng:
-   ```bash
-   npm start
-   ```
-5. Truy cập website tại địa chỉ `http://localhost:3000`
+## React Compiler
 
-## Đóng góp
-Mọi ý kiến đóng góp hoặc báo lỗi xin gửi về nhóm phát triển dự án OhStem.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
----
-**OhStem - STEM Shop Web**
-// test
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
