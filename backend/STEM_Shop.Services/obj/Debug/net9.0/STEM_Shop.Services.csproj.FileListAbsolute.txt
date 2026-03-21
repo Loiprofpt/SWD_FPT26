@@ -1,0 +1,16 @@
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\bin\Debug\net9.0\STEM_Shop.Services.deps.json
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\bin\Debug\net9.0\STEM_Shop.Services.dll
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\bin\Debug\net9.0\STEM_Shop.Services.pdb
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\bin\Debug\net9.0\STEM_Shop.Data.dll
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\bin\Debug\net9.0\STEM_Shop.Data.pdb
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.csproj.AssemblyReference.cache
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.GeneratedMSBuildEditorConfig.editorconfig
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.AssemblyInfoInputs.cache
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.AssemblyInfo.cs
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.csproj.CoreCompileInputs.cache
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.sourcelink.json
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Sho.AF3CD8AD.Up2Date
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.dll
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\refint\STEM_Shop.Services.dll
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\STEM_Shop.Services.pdb
+D:\Ki 7\SWD_FPT26\backend\STEM_Shop.Services\obj\Debug\net9.0\ref\STEM_Shop.Services.dll
