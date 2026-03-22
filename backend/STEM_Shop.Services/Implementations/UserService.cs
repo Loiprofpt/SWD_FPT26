@@ -128,5 +128,51 @@ namespace STEM_Shop.Services.Implementations
 
             return new ApiResponse<bool> { Success = true, Message = "Đã khóa tài khoản người dùng thành công", Data = true };
         }
+
+        public async Task<ApiResponse<UserProfileResponse>> GetProfileAsync(int userId)
+        {
+            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return new ApiResponse<UserProfileResponse> { Success = false, Message = "Không tìm thấy người dùng" };
+
+            return new ApiResponse<UserProfileResponse>
+            {
+                Success = true,
+                Data = new UserProfileResponse
+                {
+                    Id = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber,
+                    Role = user.Role?.RoleName
+                }
+            };
+        }
+
+        public async Task<ApiResponse<UserProfileResponse>> UpdateProfileAsync(int userId, UpdateProfileRequest request)
+        {
+            // Include Role để trả về đầy đủ thông tin sau khi update
+            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return new ApiResponse<UserProfileResponse> { Success = false, Message = "Không tìm thấy người dùng" };
+
+            user.FullName = request.FullName;
+            user.PhoneNumber = request.PhoneNumber;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<UserProfileResponse>
+            {
+                Success = true,
+                Message = "Cập nhật thông tin thành công",
+                Data = new UserProfileResponse
+                {
+                    Id = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber,
+                    Role = user.Role?.RoleName
+                }
+            };
+        }
     }
 }

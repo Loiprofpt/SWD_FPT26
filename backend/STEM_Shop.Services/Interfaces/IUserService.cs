@@ -11,5 +11,7 @@ namespace STEM_Shop.Services.Interfaces
         Task<ApiResponse<UserResponse>> CreateUserAsync(CreateUserRequest request);
         Task<ApiResponse<UserResponse>> UpdateUserAsync(int id, UpdateUserRequest request);
         Task<ApiResponse<bool>> DeleteUserAsync(int id);
+        Task<ApiResponse<UserProfileResponse>> GetProfileAsync(int userId);
+        Task<ApiResponse<UserProfileResponse>> UpdateProfileAsync(int userId, UpdateProfileRequest request);
     }
 }

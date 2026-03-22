@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STEM_Shop.Services.DTOs;
 using STEM_Shop.Services.Interfaces;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace STEM_Shop.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")] // Chỉ Admin mới truy cập được
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -18,41 +19,30 @@ namespace STEM_Shop.API.Controllers
             _userService = userService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
         {
-            var result = await _userService.GetAllUsersAsync();
-            return Ok(result);
-        }
+            var userIdClaim = User.FindFirst("id");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized();
+            }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserById(int id)
-        {
-            var result = await _userService.GetUserByIdAsync(id);
-            if (!result.Success) return NotFound(result);
-            return Ok(result);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
-        {
-            var result = await _userService.CreateUserAsync(request);
+            var result = await _userService.GetProfileAsync(userId);
             if (!result.Success) return BadRequest(result);
             return Ok(result);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
-            var result = await _userService.UpdateUserAsync(id, request);
-            if (!result.Success) return BadRequest(result);
-            return Ok(result);
-        }
+            var userIdClaim = User.FindFirst("id");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized();
+            }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
-        {
-            var result = await _userService.DeleteUserAsync(id);
+            var result = await _userService.UpdateProfileAsync(userId, request);
             if (!result.Success) return BadRequest(result);
             return Ok(result);
         }

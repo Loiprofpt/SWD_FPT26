@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../api/axiosConfig';
 
 const Profile = () => {
     const [profile, setProfile] = useState({
@@ -28,11 +28,9 @@ const Profile = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await axios.get("https://localhost:7142/api/users/profile", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (response.data.success) {
-                    setProfile(response.data.data);
+                const response = await api.get("/users/profile");
+                if (response.success) {
+                    setProfile(response.data);
                 }
             } catch (error) {
                 // Fallback nếu API chưa sẵn sàng hoặc lỗi, lấy tạm từ localStorage để hiển thị
@@ -48,7 +46,7 @@ const Profile = () => {
                         }));
                     } catch (e) {}
                 }
-                if (error.response?.status === 401) {
+                if (error.status === 401) {
                     setMessage({ type: 'error', text: 'Phiên đăng nhập hết hạn.' });
                 }
             } finally {
@@ -66,14 +64,12 @@ const Profile = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await axios.put("https://localhost:7142/api/users/profile", {
+            const response = await api.put("/users/profile", {
                 fullName: profile.fullName,
                 phoneNumber: profile.phoneNumber
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (response.data.success) {
+            if (response.success) {
                 setMessage({ type: 'success', text: 'Cập nhật thành công!' });
                 
                 // Cập nhật lại LocalStorage để Header hiển thị tên mới ngay lập tức
@@ -85,7 +81,7 @@ const Profile = () => {
                     window.dispatchEvent(new Event("storage"));
                 }
             } else {
-                setMessage({ type: 'error', text: response.data.message });
+                setMessage({ type: 'error', text: response.message });
             }
         } catch (error) {
             setMessage({ type: 'error', text: 'Lỗi khi cập nhật thông tin.' });
@@ -106,22 +102,31 @@ const Profile = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await axios.post("https://localhost:7142/api/auth/change-password", {
+            const response = await api.post("/auth/change-password", {
                 oldPassword: passwordData.oldPassword,
                 newPassword: passwordData.newPassword
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (response.data.success) {
+            if (response.success) {
                 setMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' });
                 setShowPasswordModal(false);
                 setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
             } else {
-                setMessage({ type: 'error', text: response.data.message });
+                setMessage({ type: 'error', text: response.message });
             }
         } catch (error) {
-            setMessage({ type: 'error', text: error.response?.data?.message || 'Lỗi khi đổi mật khẩu.' });
+            let errorMsg = 'Lỗi khi đổi mật khẩu.';
+            
+            // Trường hợp 1: Lỗi Logic từ Backend trả về (ví dụ: Sai mật khẩu cũ) -> { success: false, message: "..." }
+            if (error.message) {
+                errorMsg = error.message;
+            } 
+            // Trường hợp 2: Lỗi Validation từ .NET (ví dụ: Mật khẩu ngắn < 6 ký tự) -> { errors: { NewPassword: [...] } }
+            else if (error.errors) {
+                errorMsg = Object.values(error.errors).flat().join('\n');
+            }
+            
+            setMessage({ type: 'error', text: errorMsg });
         } finally {
             setIsSaving(false);
         }
