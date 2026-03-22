@@ -18,9 +18,9 @@ namespace STEM_Shop.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProducts()
+        public async Task<IActionResult> GetAllProducts([FromQuery] string? search, [FromQuery] int? minPrice, [FromQuery] int? maxPrice, [FromQuery] int? categoryId)
         {
-            var result = await _productService.GetAllProductsAsync();
+            var result = await _productService.GetAllProductsAsync(search, minPrice, maxPrice, categoryId);
             return Ok(result);
         }
 

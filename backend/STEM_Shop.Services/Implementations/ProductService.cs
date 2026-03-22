@@ -18,13 +18,35 @@ namespace STEM_Shop.Services.Implementations
             _context = context;
         }
 
-        public async Task<ApiResponse<List<ProductResponse>>> GetAllProductsAsync()
+        public async Task<ApiResponse<List<ProductResponse>>> GetAllProductsAsync(string? search = null, int? minPrice = null, int? maxPrice = null, int? categoryId = null)
         {
-            var products = await _context.Products
+            var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
-                .ToListAsync();
-                
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(p => p.Name.Contains(search) || (p.Description != null && p.Description.Contains(search)));
+            }
+
+            if (minPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= maxPrice.Value);
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            var products = await query.ToListAsync();
+
             var dtos = products.Select(p => new ProductResponse
             {
                 Id = p.Id,
