@@ -34,7 +34,7 @@ namespace STEM_Shop.API.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
+        public async Task<IActionResult> CreateProduct([FromForm] CreateProductRequest request)
         {
             var result = await _productService.CreateProductAsync(request);
             if (!result.Success) return BadRequest(result);
@@ -43,7 +43,7 @@ namespace STEM_Shop.API.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
+        public async Task<IActionResult> UpdateProduct(int id, [FromForm] UpdateProductRequest request)
         {
             var result = await _productService.UpdateProductAsync(id, request);
             if (!result.Success) return BadRequest(result);

@@ -24,7 +24,7 @@ namespace STEM_Shop.Services.DTOs
         public string? AgeRange { get; set; }
         public int Price { get; set; }
         public int? StockQuantity { get; set; }
-        public string? ImageUrl { get; set; }
+        public Microsoft.AspNetCore.Http.IFormFile? ImageFile { get; set; }
         public int? CategoryId { get; set; }
         public int? BrandId { get; set; }
     }
@@ -37,7 +37,7 @@ namespace STEM_Shop.Services.DTOs
         public string? AgeRange { get; set; }
         public int Price { get; set; }
         public int? StockQuantity { get; set; }
-        public string? ImageUrl { get; set; }
+        public Microsoft.AspNetCore.Http.IFormFile? ImageFile { get; set; }
         public int? CategoryId { get; set; }
         public int? BrandId { get; set; }
     }

@@ -1,4 +1,7 @@
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using STEM_Shop.Data.Context;
 using STEM_Shop.Data.Models;
 using STEM_Shop.Services.DTOs;
@@ -12,10 +15,12 @@ namespace STEM_Shop.Services.Implementations
     public class ProductService : IProductService
     {
         private readonly STEM_Shop_DBContext _context;
+        private readonly IConfiguration _configuration;
 
-        public ProductService(STEM_Shop_DBContext context)
+        public ProductService(STEM_Shop_DBContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<ApiResponse<List<ProductResponse>>> GetAllProductsAsync(string? search = null, int? minPrice = null, int? maxPrice = null, int? categoryId = null)
@@ -108,6 +113,25 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<ProductResponse>> CreateProductAsync(CreateProductRequest request)
         {
+            string? uploadedImageUrl = null;
+            if (request.ImageFile != null && request.ImageFile.Length > 0)
+            {
+                var cloudName = _configuration["Cloudinary:CloudName"];
+                var apiKey = _configuration["Cloudinary:ApiKey"];
+                var apiSecret = _configuration["Cloudinary:ApiSecret"];
+
+                var account = new Account(cloudName, apiKey, apiSecret);
+                var cloudinary = new Cloudinary(account);
+                using var stream = request.ImageFile.OpenReadStream();
+                var uploadParams = new ImageUploadParams()
+                {
+                    File = new FileDescription(request.ImageFile.FileName, stream),
+                    Folder = "products"
+                };
+                var uploadResult = await cloudinary.UploadAsync(uploadParams);
+                uploadedImageUrl = uploadResult.SecureUrl.ToString();
+            }
+
             int maxId = await _context.Products.MaxAsync(p => (int?)p.Id) ?? 0;
             await _context.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('Products', RESEED, {maxId})");
 
@@ -119,13 +143,24 @@ namespace STEM_Shop.Services.Implementations
                 AgeRange = request.AgeRange,
                 Price = request.Price,
                 StockQuantity = request.StockQuantity,
-                ImageUrl = request.ImageUrl,
+                ImageUrl = uploadedImageUrl,
                 CategoryId = request.CategoryId,
                 BrandId = request.BrandId
             };
 
             _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return new ApiResponse<ProductResponse>
+                {
+                    Success = false,
+                    Message = "CategoryId hoặc BrandId không tồn tại."
+                };
+            }
 
             await _context.Entry(product).Reference(p => p.Category).LoadAsync();
             await _context.Entry(product).Reference(p => p.Brand).LoadAsync();
@@ -162,18 +197,46 @@ namespace STEM_Shop.Services.Implementations
                 return new ApiResponse<ProductResponse> { Success = false, Message = "Product not found" };
             }
 
+            if (request.ImageFile != null && request.ImageFile.Length > 0)
+            {
+                var cloudName = _configuration["Cloudinary:CloudName"];
+                var apiKey = _configuration["Cloudinary:ApiKey"];
+                var apiSecret = _configuration["Cloudinary:ApiSecret"];
+
+                var account = new Account(cloudName, apiKey, apiSecret);
+                var cloudinary = new Cloudinary(account);
+                using var stream = request.ImageFile.OpenReadStream();
+                var uploadParams = new ImageUploadParams()
+                {
+                    File = new FileDescription(request.ImageFile.FileName, stream),
+                    Folder = "products"
+                };
+                var uploadResult = await cloudinary.UploadAsync(uploadParams);
+                product.ImageUrl = uploadResult.SecureUrl.ToString();
+            }
+
             product.Name = request.Name;
             product.Description = request.Description;
             product.TechnicalSpecs = request.TechnicalSpecs;
             product.AgeRange = request.AgeRange;
             product.Price = request.Price;
             product.StockQuantity = request.StockQuantity;
-            product.ImageUrl = request.ImageUrl;
             product.CategoryId = request.CategoryId;
             product.BrandId = request.BrandId;
 
             _context.Products.Update(product);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return new ApiResponse<ProductResponse>
+                {
+                    Success = false,
+                    Message = "CategoryId hoặc BrandId không tồn tại."
+                };
+            }
 
             await _context.Entry(product).Reference(p => p.Category).LoadAsync();
             await _context.Entry(product).Reference(p => p.Brand).LoadAsync();
