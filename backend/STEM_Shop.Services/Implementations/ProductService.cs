@@ -86,6 +86,9 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<ProductResponse>> CreateProductAsync(CreateProductRequest request)
         {
+            int maxId = await _context.Products.MaxAsync(p => (int?)p.Id) ?? 0;
+            await _context.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('Products', RESEED, {maxId})");
+
             var product = new Product
             {
                 Name = request.Name,

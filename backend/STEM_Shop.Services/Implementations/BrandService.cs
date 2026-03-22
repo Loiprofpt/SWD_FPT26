@@ -60,6 +60,9 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<BrandResponse>> CreateBrandAsync(CreateBrandRequest request)
         {
+            int maxId = await _context.Brands.MaxAsync(b => (int?)b.Id) ?? 0;
+            await _context.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('Brands', RESEED, {maxId})");
+
             var brand = new Brand
             {
                 BrandName = request.Name,

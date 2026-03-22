@@ -60,6 +60,9 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<CategoryResponse>> CreateCategoryAsync(CreateCategoryRequest request)
         {
+            int maxId = await _context.Categories.MaxAsync(c => (int?)c.Id) ?? 0;
+            await _context.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('Categories', RESEED, {maxId})");
+
             var category = new Category
             {
                 CategoryName = request.Name,
