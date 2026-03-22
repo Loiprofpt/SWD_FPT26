@@ -34,8 +34,9 @@ public partial class STEM_Shop_DBContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-
-        => optionsBuilder.UseSqlServer("Data Source=LAPTOP-KG3S19MT\\DB;Initial Catalog=STEM_Shop_DB;Integrated Security=True");
+    {
+        // Sử dụng cấu hình từ Program.cs thay vì hardcode
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
