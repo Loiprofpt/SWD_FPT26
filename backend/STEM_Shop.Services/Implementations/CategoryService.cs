@@ -118,20 +118,31 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<bool>> DeleteCategoryAsync(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
+            try
             {
-                return new ApiResponse<bool> { Success = false, Message = "Category not found" };
-            }
+                var category = await _context.Categories.FindAsync(id);
+                if (category == null)
+                {
+                    return new ApiResponse<bool> { Success = false, Message = "Category not found" };
+                }
 
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<bool>
+                _context.Categories.Remove(category);
+                await _context.SaveChangesAsync();
+                return new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = "Xóa thành công",
+                    Data = true
+                };
+            }
+            catch (DbUpdateException ex)
             {
-                Success = true,
-                Message = "Xóa thành công",
-                Data = true
-            };
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không thể xóa danh mục này vì đang có sản phẩm thuộc danh mục này."
+                };
+            }
         }
     }
 }

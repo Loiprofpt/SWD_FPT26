@@ -204,20 +204,31 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<bool>> DeleteProductAsync(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null)
+            try
             {
-                return new ApiResponse<bool> { Success = false, Message = "Product not found" };
-            }
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return new ApiResponse<bool> { Success = false, Message = "Product not found" };
+                }
 
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<bool>
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+                return new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = "Xóa thành công",
+                    Data = true
+                };
+            }
+            catch (DbUpdateException ex)
             {
-                Success = true,
-                Message = "Xóa thành công",
-                Data = true
-            };
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không thể xóa sản phẩm này vì đang có dữ liệu liên quan (ví dụ: Chi tiết đơn hàng, ...)."
+                };
+            }
         }
     }
 }

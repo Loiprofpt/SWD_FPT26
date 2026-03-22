@@ -96,6 +96,22 @@ builder.Services.AddTransient<IEmailService, EmailService>();
 
 var app = builder.Build();
 
+// Data Seeding
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<STEM_Shop_DBContext>();
+        await DbSeeder.SeedAsync(context);
+    }
+    catch (System.Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Thêm dữ liệu mẫu vào DB bị lỗi.");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || true) // Luôn bật Swagger để dễ test
 {

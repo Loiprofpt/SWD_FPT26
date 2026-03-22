@@ -118,20 +118,31 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<bool>> DeleteBrandAsync(int id)
         {
-            var brand = await _context.Brands.FindAsync(id);
-            if (brand == null)
+            try
             {
-                return new ApiResponse<bool> { Success = false, Message = "Brand not found" };
-            }
+                var brand = await _context.Brands.FindAsync(id);
+                if (brand == null)
+                {
+                    return new ApiResponse<bool> { Success = false, Message = "Brand not found" };
+                }
 
-            _context.Brands.Remove(brand);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<bool>
+                _context.Brands.Remove(brand);
+                await _context.SaveChangesAsync();
+                return new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = "Xóa thành công",
+                    Data = true
+                };
+            }
+            catch (DbUpdateException ex)
             {
-                Success = true,
-                Message = "Xóa thành công",
-                Data = true
-            };
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không thể xóa thương hiệu này vì đang có sản phẩm thuộc thương hiệu này."
+                };
+            }
         }
     }
 }
