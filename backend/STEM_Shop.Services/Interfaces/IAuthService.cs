@@ -10,5 +10,6 @@ namespace STEM_Shop.Services.Interfaces
         Task<ApiResponse<bool>> ForgotPasswordAsync(string email);
         Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request);
         Task<ApiResponse<AuthResponse>> GoogleLoginAsync(GoogleLoginRequest request);
+        Task<ApiResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request);
     }
 }

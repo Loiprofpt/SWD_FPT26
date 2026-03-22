@@ -1,135 +1,151 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-import useAuthStore from '../store/useAuthStore';
-import { authApi } from '../api/authApi';
+import { GoogleLogin } from '@react-oauth/google';
 
-export default function Login() {
-  const navigate = useNavigate();
-  const login = useAuthStore((s) => s.login);
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+const Login = () => {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await authApi.login(form.email, form.password);
-      if (res?.success) {
-        login(res.data, res.data.token);
-        navigate('/');
-      } else {
-        setError(res?.message || 'Đăng nhập thất bại');
-      }
-    } catch (err) {
-      setError(err?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setError("");
+        
+        try {
+            // Gọi API Login
+            const response = await axios.post("https://localhost:7142/api/auth/login", {
+                email,
+                password
+            });
 
-  return (
-    <div className="min-h-screen flex">
-      {/* Left - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md"
-        >
-          <Link to="/" className="flex items-center gap-2 mb-10">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
-            <span className="text-xl font-bold text-primary">
-              STEM<span className="text-secondary">Shop</span>
-            </span>
-          </Link>
+            if (response.data.success) {
+                const { token, role, fullName } = response.data.data;
+                
+                // Lưu Token và thông tin User vào LocalStorage
+                localStorage.setItem("token", token);
+                localStorage.setItem("user", JSON.stringify({ role, fullName, email }));
 
-          <h1 className="text-3xl font-bold text-primary-dark mb-2">Chào mừng trở lại</h1>
-          <p className="text-gray-400 mb-8">Đăng nhập để tiếp tục mua sắm</p>
+                // Dispatch event để các component khác (nếu có lắng nghe) cập nhật state
+                window.dispatchEvent(new Event("storage"));
+                
+                // alert("Đăng nhập thành công!"); // Có thể bỏ alert cho mượt
+                
+                // Chuyển hướng dựa trên Role
+                if (role === "Admin") {
+                    navigate("/admin");
+                } else {
+                    navigate("/");
+                }
+            } else {
+                setError(response.data.message);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Lỗi kết nối Server");
+        }
+    };
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-danger/10 text-danger text-sm p-4 rounded-xl mb-6"
+    const handleGoogleLogin = async (credentialResponse) => {
+        try {
+            const response = await axios.post("https://localhost:7142/api/auth/google-login", {
+                IdToken: credentialResponse.credential
+            });
+
+            if (response.data.success) {
+                const { token, role, fullName, email: userEmail } = response.data.data;
+                
+                localStorage.setItem("token", token);
+                localStorage.setItem("user", JSON.stringify({ role, fullName, email: userEmail }));
+                window.dispatchEvent(new Event("storage"));
+
+                // Chuyển hướng
+                if (role === "Admin") {
+                    navigate("/admin");
+                } else {
+                    navigate("/");
+                }
+            } else {
+                setError(response.data.message);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Lỗi đăng nhập Google");
+        }
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl"
             >
-              {error}
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-primary-dark">
+                        Đăng nhập
+                    </h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Chào mừng bạn quay trở lại với STEM Shop
+                    </p>
+                </div>
+                
+                {error && (
+                    <div className="bg-red-50 text-red-500 p-4 rounded-lg text-sm text-center border border-red-100">
+                        {error}
+                    </div>
+                )}
+            
+                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required 
+                                   className="input-field w-full" placeholder="name@example.com" />
+                        </div>
+                        <div>
+                            <div className="flex justify-between mb-1">
+                                <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
+                                <Link to="/forgot-password" style={{ fontSize: "14px", color: "#007bff" }} className="hover:underline">Quên mật khẩu?</Link>
+                            </div>
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required 
+                                   className="input-field w-full" placeholder="••••••••" />
+                        </div>
+                    </div>
+
+                    <button type="submit" className="btn-primary w-full py-3 flex justify-center shadow-lg shadow-primary/30">
+                        Đăng nhập
+                    </button>
+
+                    <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">Hoặc tiếp tục với</span>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleLogin}
+                            onError={() => {
+                                setError("Đăng nhập Google thất bại");
+                            }}
+                        />
+                    </div>
+
+                    <div className="text-center text-sm">
+                        <span className="text-gray-500">Chưa có tài khoản? </span>
+                        <Link to="/register" style={{ color: "#007bff" }} className="font-medium hover:underline">
+                            Đăng ký ngay
+                        </Link>
+                    </div>
+                </form>
             </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">Email</label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="email@example.com"
-                className="input-field"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">Mật khẩu</label>
-              <input
-                type="password"
-                required
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Nhập mật khẩu..."
-                className="input-field"
-              />
-            </div>
-
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                'Đăng nhập'
-              )}
-            </motion.button>
-          </form>
-
-          <p className="text-center text-gray-400 mt-8">
-            Chưa có tài khoản?{' '}
-            <Link to="/register" className="text-secondary font-semibold hover:text-secondary-dark transition-colors">
-              Đăng ký ngay
-            </Link>
-          </p>
-        </motion.div>
-      </div>
-
-      {/* Right - Visual */}
-      <div className="hidden lg:flex flex-1 gradient-hero items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-secondary/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-20 -left-20 w-48 h-48 bg-accent/10 rounded-full blur-3xl animate-float-delayed" />
         </div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="relative z-10 text-center max-w-md"
-        >
-          <div className="w-32 h-32 mx-auto mb-8 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/20">
-            <span className="text-6xl font-bold text-white/80">S</span>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-4">STEM Shop</h2>
-          <p className="text-white/60">
-            Khám phá thế giới công nghệ và sáng tạo với hàng trăm sản phẩm STEM chất lượng cao.
-          </p>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
+    );
+};
+
+export default Login;

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STEM_Shop.Services.DTOs;
 using STEM_Shop.Services.Interfaces;
@@ -71,6 +72,22 @@ namespace STEM_Shop.API.Controllers
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
         {
             var result = await _authService.GoogleLoginAsync(request);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            // Lấy UserId từ Token
+            var userIdClaim = User.FindFirst("id");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _authService.ChangePasswordAsync(userId, request);
             if (!result.Success) return BadRequest(result);
             return Ok(result);
         }

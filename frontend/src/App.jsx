@@ -10,6 +10,9 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Admin/Dashboard';
+import ResetPassword from './ResetPassword';
+import ForgotPassword from './ForgotPassword';
+import Profile from './pages/Profile';
 
 function PageTransition({ children }) {
   return (
@@ -26,7 +29,7 @@ function PageTransition({ children }) {
 
 function AppRoutes() {
   const location = useLocation();
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+  const isAuthPage = ['/login', '/register', '/reset-password', '/forgot-password'].includes(location.pathname);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -41,6 +44,9 @@ function AppRoutes() {
             <Route path="/checkout" element={<PageTransition><Checkout /></PageTransition>} />
             <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
             <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
+            <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+            <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+            <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
             <Route path="/admin" element={<PageTransition><Dashboard /></PageTransition>} />
           </Routes>
         </AnimatePresence>

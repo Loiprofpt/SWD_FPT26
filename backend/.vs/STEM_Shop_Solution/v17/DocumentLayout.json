@@ -3,8 +3,20 @@
   "WorkspaceRootPath": "D:\\Ki 7\\SWD_FPT26\\backend\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.api\\stem_shop.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|solutionrelative:stem_shop.api\\stem_shop.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|solutionrelative:stem_shop.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|solutionrelative:stem_shop.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4D34283D-B885-4406-88D5-499E5E9BD96F}|STEM_Shop.Data\\STEM_Shop.Data.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.data\\context\\stem_shop_dbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4D34283D-B885-4406-88D5-499E5E9BD96F}|STEM_Shop.Data\\STEM_Shop.Data.csproj|solutionrelative:stem_shop.data\\context\\stem_shop_dbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{19C9DE07-3148-47E2-9ECF-07E2C7AC0BD1}|STEM_Shop.Services\\STEM_Shop.Services.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.services\\implementations\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -23,14 +35,6 @@
       "RelativeMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|solutionrelative:stem_shop.api\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4D34283D-B885-4406-88D5-499E5E9BD96F}|STEM_Shop.Data\\STEM_Shop.Data.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.data\\context\\stem_shop_dbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{4D34283D-B885-4406-88D5-499E5E9BD96F}|STEM_Shop.Data\\STEM_Shop.Data.csproj|solutionrelative:stem_shop.data\\context\\stem_shop_dbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{90C139B8-6576-4928-A2F1-3A08823377E2}|STEM_Shop.API\\STEM_Shop.API.csproj|solutionrelative:stem_shop.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{19C9DE07-3148-47E2-9ECF-07E2C7AC0BD1}|STEM_Shop.Services\\STEM_Shop.Services.csproj|d:\\ki 7\\swd_fpt26\\backend\\stem_shop.services\\dtos\\authdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{19C9DE07-3148-47E2-9ECF-07E2C7AC0BD1}|STEM_Shop.Services\\STEM_Shop.Services.csproj|solutionrelative:stem_shop.services\\dtos\\authdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -46,11 +50,24 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
+              "Title": "STEM_Shop.API",
+              "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\STEM_Shop.API.csproj",
+              "RelativeDocumentMoniker": "STEM_Shop.API\\STEM_Shop.API.csproj",
+              "ToolTip": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\STEM_Shop.API.csproj",
+              "RelativeToolTip": "STEM_Shop.API\\STEM_Shop.API.csproj",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-03-22T06:09:05.453Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "IEmailService.cs",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.Services\\Interfaces\\IEmailService.cs",
               "RelativeDocumentMoniker": "STEM_Shop.Services\\Interfaces\\IEmailService.cs",
@@ -58,12 +75,11 @@
               "RelativeToolTip": "STEM_Shop.Services\\Interfaces\\IEmailService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-22T04:16:20.564Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-22T04:16:20.564Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 5,
               "Title": "UserService.cs",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.Services\\Implementations\\UserService.cs",
               "RelativeDocumentMoniker": "STEM_Shop.Services\\Implementations\\UserService.cs",
@@ -71,12 +87,11 @@
               "RelativeToolTip": "STEM_Shop.Services\\Implementations\\UserService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-22T04:18:54.764Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-22T04:18:54.764Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "AuthController.cs",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\Controllers\\AuthController.cs",
               "RelativeDocumentMoniker": "STEM_Shop.API\\Controllers\\AuthController.cs",
@@ -84,12 +99,11 @@
               "RelativeToolTip": "STEM_Shop.API\\Controllers\\AuthController.cs",
               "ViewState": "AgIAACAAAAAAAAAAAAAWwD4AAABCAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-22T03:58:46.32Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-22T03:58:46.32Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "AuthService.cs",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.Services\\Implementations\\AuthService.cs",
               "RelativeDocumentMoniker": "STEM_Shop.Services\\Implementations\\AuthService.cs",
@@ -97,12 +111,11 @@
               "RelativeToolTip": "STEM_Shop.Services\\Implementations\\AuthService.cs",
               "ViewState": "AgIAAGYAAAAAAAAAAAD4vyIAAABSAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-22T03:57:35.939Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-22T03:57:35.939Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "AuthDTOs.cs",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.Services\\DTOs\\AuthDTOs.cs",
               "RelativeDocumentMoniker": "STEM_Shop.Services\\DTOs\\AuthDTOs.cs",
@@ -110,12 +123,11 @@
               "RelativeToolTip": "STEM_Shop.Services\\DTOs\\AuthDTOs.cs",
               "ViewState": "AgIAAAsAAAAAAAAAAAAgwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-22T03:49:49.357Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-22T03:49:49.357Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 3,
               "Title": "STEM_Shop_DBContext.cs",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.Data\\Context\\STEM_Shop_DBContext.cs",
               "RelativeDocumentMoniker": "STEM_Shop.Data\\Context\\STEM_Shop_DBContext.cs",
@@ -128,20 +140,33 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "appsettings.json",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\appsettings.json",
               "RelativeDocumentMoniker": "STEM_Shop.API\\appsettings.json",
               "ToolTip": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\appsettings.json",
               "RelativeToolTip": "STEM_Shop.API\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAhAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAA4AAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-03-21T13:31:44.386Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\Program.cs",
+              "RelativeDocumentMoniker": "STEM_Shop.API\\Program.cs",
+              "ToolTip": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\Program.cs",
+              "RelativeToolTip": "STEM_Shop.API\\Program.cs",
+              "ViewState": "AgIAADMAAAAAAAAAAAAWwFkAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-21T13:31:42.891Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "STEM_Shop.Data.csproj",
               "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.Data\\STEM_Shop.Data.csproj",
               "RelativeDocumentMoniker": "STEM_Shop.Data\\STEM_Shop.Data.csproj",
@@ -150,19 +175,6 @@
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
               "WhenOpened": "2026-03-21T13:58:48.799Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Program.cs",
-              "DocumentMoniker": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\Program.cs",
-              "RelativeDocumentMoniker": "STEM_Shop.API\\Program.cs",
-              "ToolTip": "D:\\Ki 7\\SWD_FPT26\\backend\\STEM_Shop.API\\Program.cs",
-              "RelativeToolTip": "STEM_Shop.API\\Program.cs",
-              "ViewState": "AgIAAEgAAAAAAAAAAAAWwFkAAAApAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-21T13:31:42.891Z",
               "EditorCaption": ""
             }
           ]

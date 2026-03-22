@@ -109,7 +109,7 @@ namespace STEM_Shop.Services.Implementations
 
             // Lấy đường dẫn Frontend từ cấu hình
             var frontendUrl = _configuration["AppSettings:FrontendUrl"] ?? "http://localhost:3000";
-            string resetLink = $"{frontendUrl}/reset-password?email={email}&token={resetToken}";
+            string resetLink = $"{frontendUrl}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(resetToken)}";
             
             string emailBody = $"<h3>Yêu cầu đặt lại mật khẩu</h3><p>Bấm vào link sau để đặt lại mật khẩu của bạn:</p><a href='{resetLink}'>Đặt lại mật khẩu</a><br/><p>Link hết hạn sau 15 phút.</p>";
             
@@ -125,9 +125,6 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-            if (user == null) return new ApiResponse<bool> { Success = false, Message = "Người dùng không tồn tại" };
-
             // Validate Token
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "SecretKeyDayLaKhoaBiMatCuaSTEMShop2024");
@@ -150,11 +147,24 @@ namespace STEM_Shop.Services.Implementations
                 {
                     return new ApiResponse<bool> { Success = false, Message = "Token không hợp lệ" };
                 }
+
+                // --- SECURITY FIX: Bắt buộc Email trong Token phải khớp với Email yêu cầu ---
+                var emailInToken = jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
+                
+                if (string.IsNullOrEmpty(emailInToken) || !emailInToken.Equals(request.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new ApiResponse<bool> { Success = false, Message = "Token không khớp với tài khoản yêu cầu" };
+                }
+                // --------------------------------------------------------------------------
             }
             catch
             {
                 return new ApiResponse<bool> { Success = false, Message = "Token hết hạn hoặc không hợp lệ" };
             }
+
+            // Tìm user sau khi đã xác thực Token thành công và khớp email
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null) return new ApiResponse<bool> { Success = false, Message = "Người dùng không tồn tại" };
 
             // Cập nhật mật khẩu mới
             user.Password = request.NewPassword;
@@ -180,7 +190,8 @@ namespace STEM_Shop.Services.Implementations
                     {
                         Email = payload.Email,
                         FullName = payload.Name,
-                        Password = Guid.NewGuid().ToString(), // Mật khẩu ngẫu nhiên
+                        Password = Guid.NewGuid().ToString(), // Mật khẩu ngẫu nhiên (User sẽ dùng Google để login, không cần nhớ pass này)
+                        PhoneNumber = "", // Đặt mặc định là chuỗi rỗng thay vì null
                         RoleId = 3, // Member
                         CreatedAt = DateTime.Now,
                         IsBlocked = 0,
@@ -215,6 +226,23 @@ namespace STEM_Shop.Services.Implementations
             {
                 return new ApiResponse<AuthResponse> { Success = false, Message = "Token Google không hợp lệ: " + ex.Message };
             }
+        }
+
+        public async Task<ApiResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return new ApiResponse<bool> { Success = false, Message = "Người dùng không tồn tại" };
+
+            if (user.Password != request.OldPassword) // Lưu ý: Nên dùng hash trong thực tế
+            {
+                return new ApiResponse<bool> { Success = false, Message = "Mật khẩu cũ không chính xác" };
+            }
+
+            user.Password = request.NewPassword;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool> { Success = true, Message = "Đổi mật khẩu thành công", Data = true };
         }
 
         private string GenerateJwtToken(User user, bool isResetToken = false)
