@@ -49,13 +49,17 @@ export default function Checkout() {
       // ===== BƯỚC 1: Xóa giỏ hàng cũ trên Backend =====
       await api.delete('/carts').catch(() => {});
 
-      // ===== BƯỚC 2: Đồng bộ từng sản phẩm lên giỏ hàng Backend (song song) =====
-      await Promise.all(
-        items.map(item => api.post('/carts/items', { productId: item.id, quantity: item.quantity }))
-      );
+      // ===== BƯỚC 2: Đồng bộ từng sản phẩm lên giỏ hàng Backend (tuần tự để tránh race condition) =====
+      for (const item of items) {
+          await api.post('/carts/items', { productId: item.id, quantity: item.quantity });
+      }
 
       // ===== BƯỚC 3: Tạo đơn hàng từ giỏ hàng Backend =====
-      const response = await orderApi.create({ address: form.address });
+      const response = await orderApi.create({ 
+        address: form.address,
+        phone: form.phone,
+        note: form.note
+      });
 
       if (response && response.success) {
         // Đặt hàng thành công — xóa giỏ hàng FE + chuyển màn hình success

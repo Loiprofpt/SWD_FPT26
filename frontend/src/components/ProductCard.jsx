@@ -75,17 +75,19 @@ export default function ProductCard({ product, index = 0 }) {
           <span className="text-lg font-bold text-secondary">
             {formatPrice(product.price)}
           </span>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => addToCart(product)}
-            disabled={product.stockQuantity === 0}
-            className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold
-                       hover:bg-primary-light transition-all duration-300
-                       disabled:opacity-40 disabled:cursor-not-allowed
-                       hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
-          >
-            Thêm
-          </motion.button>
+          {JSON.parse(localStorage.getItem("user") || "{}")?.role !== 'Admin' && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => addToCart(product)}
+              disabled={product.stockQuantity === 0}
+              className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold
+                         hover:bg-primary-light transition-all duration-300
+                         disabled:opacity-40 disabled:cursor-not-allowed
+                         hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
+            >
+              Thêm
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.div>

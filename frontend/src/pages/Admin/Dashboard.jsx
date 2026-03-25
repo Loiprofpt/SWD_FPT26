@@ -104,24 +104,52 @@ export default function Dashboard() {
         } else if (tab === 'Kho hàng') {
           await loadWarehouses();
         }
-      } catch (e) {
+      } catch {
         toast('Không thể kết nối server. Vui lòng kiểm tra backend!', 'error');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const loadProducts = async () => { const res = await productApi.getAll(); if (res.success) setProducts(res.data); };
   const loadCategories = async () => { const res = await categoryApi.getAll(); if (res.success) setCategories(res.data); };
   const loadBrands = async () => { const res = await brandApi.getAll(); if (res.success) setBrands(res.data); };
   const loadWarehouses = async () => { const data = await warehouseApi.getAll(); setWarehouses(data || []); };
-  const refreshTab = () => setTab(t => { return t; }); // force re-trigger useEffect
-  const forceRefresh = useCallback(() => {
-    const cur = tab;
-    setTab('__temp');
-    setTimeout(() => setTab(cur), 0);
+  const forceRefresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (tab === 'Tổng quan') {
+        const [data, ordRes] = await Promise.all([
+          dashboardApi.getStats().catch(() => ({})),
+          orderApi.getAll().catch(() => ({ success: false, data: [] }))
+        ]);
+        setStats([
+          { label: 'Doanh thu', value: formatPrice(data.totalRevenue || 0), color: 'bg-blue-50 text-blue-600' },
+          { label: 'Đơn hàng', value: (data.totalOrders || 0).toString(), color: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Sản phẩm', value: (data.totalProducts || 0).toString(), color: 'bg-violet-50 text-violet-600' },
+          { label: 'Khách hàng', value: (data.totalUsers || 0).toString(), color: 'bg-amber-50 text-amber-600' },
+        ]);
+        if (ordRes.success) setOrders(ordRes.data.slice(0, 5));
+      } else if (tab === 'Đơn hàng') {
+        const res = await orderApi.getAll();
+        if (res.success) setOrders(res.data);
+      } else if (tab === 'Sản phẩm') {
+        await loadProducts();
+      } else if (tab === 'Danh mục') {
+        await loadCategories();
+      } else if (tab === 'Thương hiệu') {
+        await loadBrands();
+      } else if (tab === 'Kho hàng') {
+        await loadWarehouses();
+      }
+    } catch {
+      toast('Không thể kết nối server!', 'error');
+    } finally {
+      setLoading(false);
+    }
   }, [tab]);
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -428,79 +456,7 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* ========== DANH MỤC ========== */}
-          {tab === 'Danh mục' && (
-            <motion.div key="categories" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
-              <div className="card overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-bold text-primary-dark">Danh mục ({categories.length})</h3>
-                  <button onClick={() => { setEditCategory(null); setShowCategoryModal(true); }} className="btn-primary text-sm py-2 px-4 cursor-pointer">+ Thêm mới</button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead><tr className="bg-gray-50">
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">ID</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Tên danh mục</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Mô tả</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Thao tác</th>
-                    </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {categories.map((c) => (
-                        <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{c.id}</td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-700">{c.categoryName || c.name}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{c.description || '—'}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-3">
-                              <button onClick={() => { setEditCategory(c); setShowCategoryModal(true); }} className="text-sm text-secondary hover:text-secondary-dark cursor-pointer">Sửa</button>
-                              <button onClick={() => handleDeleteCategory(c.id)} className="text-sm text-red-500 hover:text-red-700 cursor-pointer">Xóa</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
-          {/* ========== THƯƠNG HIỆU ========== */}
-          {tab === 'Thương hiệu' && (
-            <motion.div key="brands" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
-              <div className="card overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-bold text-primary-dark">Thương hiệu ({brands.length})</h3>
-                  <button onClick={() => { setEditBrand(null); setShowBrandModal(true); }} className="btn-primary text-sm py-2 px-4 cursor-pointer">+ Thêm mới</button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead><tr className="bg-gray-50">
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">ID</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Tên thương hiệu</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Mô tả</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Thao tác</th>
-                    </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {brands.map((b) => (
-                        <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{b.id}</td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-700">{b.brandName || b.name}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{b.description || '—'}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-3">
-                              <button onClick={() => { setEditBrand(b); setShowBrandModal(true); }} className="text-sm text-secondary hover:text-secondary-dark cursor-pointer">Sửa</button>
-                              <button onClick={() => handleDeleteBrand(b.id)} className="text-sm text-red-500 hover:text-red-700 cursor-pointer">Xóa</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {/* ------------- TAB KHO HÀNG ------------- */}
           {tab === 'Kho hàng' && (
@@ -727,8 +683,8 @@ function ProductModalContent({ product, categories, brands, onClose, onSaved, lo
     categoryId: product?.categoryId || '', brandId: product?.brandId || '',
   });
   const [imageFile, setImageFile] = useState(null);
-  const [saving, setSaving] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSupportData(); }, []);
 
   const handleSubmit = async (e) => {
@@ -893,6 +849,22 @@ function OrderRow({ order, onStatusChange, formatPrice, formatDate }) {
       </div>
       {expanded && (
         <div className="px-6 pb-4 pl-16">
+          <div className="flex flex-wrap gap-x-8 gap-y-2 mb-4 bg-white/50 p-3 rounded-xl border border-gray-100/50 text-sm">
+            <div className="flex gap-2">
+                <span className="text-gray-400 font-medium">SĐT:</span>
+                <span className="text-primary-dark font-bold">{order.phone || '—'}</span>
+            </div>
+            <div className="flex gap-2">
+                <span className="text-gray-400 font-medium">Địa chỉ:</span>
+                <span className="text-gray-700">{order.address || '—'}</span>
+            </div>
+            {order.note && (
+                <div className="flex gap-2 w-full pt-1 border-t border-gray-100">
+                    <span className="text-gray-400 font-medium whitespace-nowrap">Ghi chú:</span>
+                    <span className="text-gray-600 italic">"{order.note}"</span>
+                </div>
+            )}
+          </div>
           {order.items && order.items.length > 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
               <table className="w-full text-sm">

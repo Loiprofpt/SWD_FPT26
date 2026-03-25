@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using STEM_Shop.Data.Context;
 using STEM_Shop.Data.Models;
 using STEM_Shop.Services.DTOs;
@@ -18,8 +18,11 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<bool> UpdateInventoryAsync(InventoryUpdateDTO model)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
             {
                 // 1. Cập nhật WarehouseStocks (Số lượng tại kho cụ thể)
                 var stock = await _context.WarehouseStocks
@@ -64,6 +67,7 @@ namespace STEM_Shop.Services.Implementations
                 await transaction.RollbackAsync();
                 return false;
             }
+            });
         }
 
         public async Task<IEnumerable<StockReportDTO>> GetLowStockAlertAsync(int threshold)

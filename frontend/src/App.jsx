@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import useAuthStore from './store/useAuthStore';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import PrivateRoute from './components/PrivateRoute';
@@ -33,6 +35,20 @@ function PageTransition({ children }) {
 function AppRoutes() {
   const location = useLocation();
   const isAuthPage = ['/login', '/register', '/reset-password', '/forgot-password'].includes(location.pathname);
+  const { isAuthenticated, login } = useAuthStore();
+
+  useEffect(() => {
+    // Hydrate old sessions missing auth-storage
+    if (!isAuthenticated) {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+      if (token && userStr) {
+        try {
+          login(JSON.parse(userStr), token);
+        } catch(e) {}
+      }
+    }
+  }, [isAuthenticated, login]);
 
   return (
     <div className="flex flex-col min-h-screen">

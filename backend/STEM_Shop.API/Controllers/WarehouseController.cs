@@ -36,7 +36,6 @@ namespace STEM_Shop.API.Controllers
                 location = w.Location,
                 warehouseStocks = w.WarehouseStocks.Select(ws => new
                 {
-                    id = ws.Id,
                     productId = ws.ProductId,
                     quantity = ws.Quantity,
                     product = ws.Product == null ? null : new

@@ -4,6 +4,7 @@ import { authApi } from '../api/authApi';
 import { motion } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../api/axiosConfig';
+import useAuthStore from '../store/useAuthStore';
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -11,6 +12,7 @@ const Login = () => {
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
+    const loginStore = useAuthStore(state => state.login);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -23,10 +25,12 @@ const Login = () => {
 
             if (data.success) {
                 const { token, role, fullName } = data.data;
+                const userObj = { role, fullName, email };
                 
                 // Lưu Token và thông tin User vào LocalStorage
                 localStorage.setItem("token", token);
-                localStorage.setItem("user", JSON.stringify({ role, fullName, email }));
+                localStorage.setItem("user", JSON.stringify(userObj));
+                loginStore(userObj, token);
 
                 // Dispatch event để các component khác (nếu có lắng nghe) cập nhật state
                 window.dispatchEvent(new Event("storage"));
@@ -58,9 +62,11 @@ const Login = () => {
 
             if (data.success) {
                 const { token, role, fullName, email: userEmail } = data.data;
+                const userObj = { role, fullName, email: userEmail };
                 
                 localStorage.setItem("token", token);
-                localStorage.setItem("user", JSON.stringify({ role, fullName, email: userEmail }));
+                localStorage.setItem("user", JSON.stringify(userObj));
+                loginStore(userObj, token);
                 window.dispatchEvent(new Event("storage"));
 
                 // Chuyển hướng

@@ -3,6 +3,8 @@ namespace STEM_Shop.Services.DTOs
     public class CreateOrderFromCartRequest
     {
         public string Address { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
     }
 
     public class UpdateOrderRequest
@@ -40,6 +42,8 @@ namespace STEM_Shop.Services.DTOs
         public DateTime? OrderDate { get; set; }
         public int TotalAmount { get; set; }
         public string Address { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public List<OrderItemResponse> Items { get; set; } = new();
     }

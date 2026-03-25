@@ -135,38 +135,46 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Add to cart */}
-            <div className="mt-auto pt-6 border-t border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center bg-gray-100 rounded-xl">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-12 h-12 flex items-center justify-center text-lg font-bold text-gray-600 hover:text-primary transition-colors cursor-pointer"
+            {/* Add to cart - Hide for Admin */}
+            {JSON.parse(localStorage.getItem("user") || "{}")?.role !== 'Admin' ? (
+              <div className="mt-auto pt-6 border-t border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center bg-gray-100 rounded-xl">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-12 h-12 flex items-center justify-center text-lg font-bold text-gray-600 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      −
+                    </button>
+                    <span className="w-12 text-center font-semibold">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-12 h-12 flex items-center justify-center text-lg font-bold text-gray-600 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleAddToCart}
+                    disabled={product.stockQuantity === 0}
+                    className={`flex-1 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 cursor-pointer ${
+                      added
+                        ? 'bg-success text-white'
+                        : 'bg-primary text-white hover:bg-primary-light hover:shadow-xl hover:shadow-primary/25'
+                    } disabled:opacity-40 disabled:cursor-not-allowed`}
                   >
-                    −
-                  </button>
-                  <span className="w-12 text-center font-semibold">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-12 h-12 flex items-center justify-center text-lg font-bold text-gray-600 hover:text-primary transition-colors cursor-pointer"
-                  >
-                    +
-                  </button>
+                    {added ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng'}
+                  </motion.button>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleAddToCart}
-                  disabled={product.stockQuantity === 0}
-                  className={`flex-1 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 cursor-pointer ${
-                    added
-                      ? 'bg-success text-white'
-                      : 'bg-primary text-white hover:bg-primary-light hover:shadow-xl hover:shadow-primary/25'
-                  } disabled:opacity-40 disabled:cursor-not-allowed`}
-                >
-                  {added ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng'}
-                </motion.button>
               </div>
-            </div>
+            ) : (
+                <div className="mt-auto pt-6 border-t border-gray-100">
+                    <Link to="/admin" className="block w-full py-4 bg-gray-100 text-gray-500 rounded-2xl font-semibold text-center hover:bg-gray-200 transition-colors">
+                        Bạn đang ở chế độ Admin. Quản lý sản phẩm tại Dashboard.
+                    </Link>
+                </div>
+            )}
           </motion.div>
         </div>
       </div>

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useCartStore from '../store/useCartStore';
+import useAuthStore from '../store/useAuthStore';
 
 const Header = () => {
     const navigate = useNavigate();
     const location = useLocation();
     // Giả sử useCartStore trả về object chứa items
     const { items } = useCartStore() || { items: [] }; 
+    const logoutStore = useAuthStore(state => state.logout);
     const [user, setUser] = useState(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -17,7 +19,7 @@ const Header = () => {
         if (userStr) {
             try {
                 setUser(JSON.parse(userStr));
-            } catch (e) {
+            } catch {
                 setUser(null);
             }
         } else {
@@ -26,6 +28,7 @@ const Header = () => {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         checkUser();
         
         // Lắng nghe sự kiện custom từ Login.jsx để cập nhật ngay lập tức
@@ -45,6 +48,7 @@ const Header = () => {
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        logoutStore();
         setUser(null);
         setShowUserMenu(false);
         window.dispatchEvent(new Event("storage")); // Cập nhật lại trạng thái cho các component khác
@@ -88,17 +92,19 @@ const Header = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-4">
-                    {/* Cart */}
-                    <Link to="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors group">
-                        <svg className="w-6 h-6 text-gray-600 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                        {items && items.length > 0 && (
-                            <span className="absolute top-0 right-0 w-5 h-5 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white">
-                                {items.length}
-                            </span>
-                        )}
-                    </Link>
+                    {/* Cart - Hide for Admin */}
+                    {(!user || user.role !== 'Admin') && (
+                        <Link to="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors group">
+                            <svg className="w-6 h-6 text-gray-600 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            {items && items.length > 0 && (
+                                <span className="absolute top-0 right-0 w-5 h-5 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white">
+                                    {items.length}
+                                </span>
+                            )}
+                        </Link>
+                    )}
 
                     {/* User Section */}
                     {user ? (

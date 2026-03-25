@@ -351,9 +351,27 @@ const Profile = () => {
                                                 ))}
                                             </div>
                                             
-                                            <div className="pt-3 border-t border-gray-50 flex justify-between items-center">
-                                                <span className="text-sm text-gray-500">Tổng tiền:</span>
-                                                <span className="text-lg font-bold text-secondary">{formatPrice(order.totalAmount)}</span>
+                                            <div className="pt-3 border-t border-gray-50 space-y-2">
+                                                <div className="flex justify-between items-start text-sm">
+                                                    <span className="text-gray-500">Giao đến:</span>
+                                                    <span className="text-gray-700 text-right font-medium max-w-[250px]">{order.address}</span>
+                                                </div>
+                                                {order.phone && (
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="text-gray-500">SĐT:</span>
+                                                        <span className="text-gray-700 font-medium">{order.phone}</span>
+                                                    </div>
+                                                )}
+                                                {order.note && (
+                                                    <div className="flex flex-col text-sm bg-gray-50 p-2 rounded-lg mt-1">
+                                                        <span className="text-gray-400 text-xs uppercase font-bold mb-1">Ghi chú:</span>
+                                                        <span className="text-gray-600 italic">"{order.note}"</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between items-center pt-2 border-t border-gray-50/50">
+                                                    <span className="text-sm text-gray-500 font-bold">Tổng tiền:</span>
+                                                    <span className="text-lg font-bold text-secondary">{formatPrice(order.totalAmount)}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
