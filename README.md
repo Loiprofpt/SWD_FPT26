@@ -23,17 +23,17 @@ Website bán hàng STEM (Science, Technology, Engineering, Mathematics) với đ
 ### Bước 1: Tạo Database
 
 1. Mở **SSMS**, kết nối vào SQL Server local (`localhost`, User: `sa`, Pass: `123456`).
-2. Mở file `database/STEM_Shop_DB.sql`.
+2. Mở file `DataBase/STEM_Shop_DB.sql`.
 3. Nhấn **Execute (F5)** để tạo Database + dữ liệu mẫu.
 
 ### Bước 2: Chạy Backend
 
 ```bash
 cd backend/STEM_Shop.API
-dotnet run --launch-profile https
+dotnet run
 ```
 
-Backend sẽ chạy tại: `https://localhost:7142`
+Backend API sẽ chạy tại: `http://localhost:5049`
 
 ### Bước 3: Chạy Frontend
 
@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Frontend sẽ chạy tại: `http://localhost:3000`
+Frontend sẽ chạy tại: `http://localhost:3000` (hoặc port được cấp trên Terminal)
 
 ## 👤 Tài khoản mẫu
 
