@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { productApi } from '../../api/productApi';
 
 const MOCK_STATS = [
   { label: 'Doanh thu', value: '25.600.000đ', change: '+12%', color: 'bg-blue-50 text-blue-600' },
@@ -16,15 +17,6 @@ const MOCK_ORDERS = [
   { id: 5, customer: 'Hoang Van E', total: 350000, status: 'Done', date: '2026-03-17' },
 ];
 
-const MOCK_PRODUCTS = [
-  { id: 1, name: 'Arduino Uno R3', price: 250000, stock: 100, category: 'Linh kiện' },
-  { id: 2, name: 'Raspberry Pi 4', price: 1500000, stock: 50, category: 'Linh kiện' },
-  { id: 3, name: 'LEGO Mindstorms EV3', price: 8500000, stock: 20, category: 'Robot' },
-  { id: 4, name: 'Kit Robot Car 4WD', price: 450000, stock: 75, category: 'Robot' },
-  { id: 5, name: 'Sensor Kit 37 in 1', price: 350000, stock: 200, category: 'Kit học tập' },
-  { id: 6, name: 'Breadboard Kit', price: 120000, stock: 300, category: 'Linh kiện' },
-];
-
 const TABS = ['Tổng quan', 'Đơn hàng', 'Sản phẩm'];
 
 const STATUS_COLORS = {
@@ -35,7 +27,16 @@ const STATUS_COLORS = {
 
 export default function Dashboard() {
   const [tab, setTab] = useState('Tổng quan');
+  const [products, setProducts] = useState([]);
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+
+  useEffect(() => {
+    if (tab === 'Sản phẩm') {
+      productApi.getAll().then((res) => {
+        if (res?.success) setProducts(res.data);
+      });
+    }
+  }, [tab]);
 
   return (
     <div className="pt-24 pb-16 min-h-screen bg-surface">
@@ -219,19 +220,19 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {MOCK_PRODUCTS.map((product) => (
+                      {products.map((product) => (
                         <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{product.id}</td>
                           <td className="px-6 py-4 text-sm text-gray-600 font-medium">{product.name}</td>
                           <td className="px-6 py-4 text-sm font-medium text-secondary">{formatPrice(product.price)}</td>
                           <td className="px-6 py-4">
-                            <span className={`text-sm font-medium ${product.stock < 30 ? 'text-danger' : 'text-success'}`}>
-                              {product.stock}
+                            <span className={`text-sm font-medium ${product.stockQuantity < 30 ? 'text-danger' : 'text-success'}`}>
+                              {product.stockQuantity}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
-                              {product.category}
+                              {product.categoryName}
                             </span>
                           </td>
                           <td className="px-6 py-4">

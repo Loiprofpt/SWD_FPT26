@@ -4,23 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { productApi } from '../api/productApi';
 
-const MOCK_PRODUCTS = [
-  { id: 1, name: 'Arduino Uno R3', price: 250000, stockQuantity: 100, categoryName: 'Linh kiện', brandName: 'Arduino', imageUrl: '', ageRange: '10+' },
-  { id: 2, name: 'Raspberry Pi 4 Model B', price: 1500000, stockQuantity: 50, categoryName: 'Linh kiện', brandName: 'Raspberry Pi', imageUrl: '', ageRange: '12+' },
-  { id: 3, name: 'LEGO Mindstorms EV3', price: 8500000, stockQuantity: 20, categoryName: 'Robot', brandName: 'LEGO', imageUrl: '', ageRange: '10+' },
-  { id: 4, name: 'Kit Robot Car 4WD', price: 450000, stockQuantity: 75, categoryName: 'Robot', brandName: 'Arduino', imageUrl: '', ageRange: '12+' },
-  { id: 5, name: 'Sensor Kit 37 in 1', price: 350000, stockQuantity: 200, categoryName: 'Kit học tập', brandName: 'Arduino', imageUrl: '', ageRange: '10+' },
-  { id: 6, name: 'Breadboard Kit Cơ Bản', price: 120000, stockQuantity: 300, categoryName: 'Linh kiện', brandName: 'Arduino', imageUrl: '', ageRange: '8+' },
-  { id: 7, name: 'LEGO Education SPIKE', price: 7200000, stockQuantity: 15, categoryName: 'Kit học tập', brandName: 'LEGO', imageUrl: '', ageRange: '8+' },
-  { id: 8, name: 'Raspberry Pi Pico W', price: 180000, stockQuantity: 150, categoryName: 'Linh kiện', brandName: 'Raspberry Pi', imageUrl: '', ageRange: '12+' },
-  { id: 9, name: 'ESP32 Dev Board', price: 95000, stockQuantity: 250, categoryName: 'Linh kiện', brandName: 'Arduino', imageUrl: '', ageRange: '14+' },
-  { id: 10, name: 'Servo Motor SG90', price: 25000, stockQuantity: 500, categoryName: 'Linh kiện', brandName: 'Arduino', imageUrl: '', ageRange: '10+' },
-  { id: 11, name: 'LEGO Boost Creative', price: 3600000, stockQuantity: 30, categoryName: 'Robot', brandName: 'LEGO', imageUrl: '', ageRange: '7+' },
-  { id: 12, name: 'Raspberry Pi Camera V2', price: 650000, stockQuantity: 80, categoryName: 'Linh kiện', brandName: 'Raspberry Pi', imageUrl: '', ageRange: '12+' },
-];
-
-const CATEGORIES = ['Tất cả', 'Robot', 'Linh kiện', 'Kit học tập'];
-const BRANDS = ['Tất cả', 'Arduino', 'Raspberry Pi', 'LEGO'];
 const SORT_OPTIONS = [
   { value: 'default', label: 'Mặc định' },
   { value: 'price_asc', label: 'Giá: Thấp → Cao' },
@@ -30,7 +13,9 @@ const SORT_OPTIONS = [
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('category') || 'Tất cả');
   const [brand, setBrand] = useState('Tất cả');
@@ -38,10 +23,28 @@ export default function Products() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    productApi.getAll().then((res) => {
-      if (res?.data?.length) setProducts(res.data);
-    }).catch(() => {});
+    const fetchData = async () => {
+      try {
+        // Gọi song song API lấy sản phẩm, danh mục và thương hiệu
+        const [prodRes, catRes, brandRes] = await Promise.all([
+          productApi.getAll(),
+          productApi.getCategories(),
+          productApi.getBrands()
+        ]);
+
+        if (prodRes?.success) setProducts(prodRes.data);
+        if (catRes?.success) setCategories(catRes.data);
+        if (brandRes?.success) setBrands(brandRes.data);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    fetchData();
   }, []);
+
+  // Tạo danh sách filter từ dữ liệu thật
+  const categoryList = ['Tất cả', ...categories.map(c => c.name)];
+  const brandList = ['Tất cả', ...brands.map(b => b.name)];
 
   const filtered = products
     .filter((p) => {
@@ -113,7 +116,7 @@ export default function Products() {
               <div>
                 <label className="text-xs text-gray-400 font-medium uppercase tracking-wider block mb-2">Danh mục</label>
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((cat) => (
+                  {categoryList.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCategory(cat)}
@@ -131,7 +134,7 @@ export default function Products() {
               <div>
                 <label className="text-xs text-gray-400 font-medium uppercase tracking-wider block mb-2">Thương hiệu</label>
                 <div className="flex flex-wrap gap-2">
-                  {BRANDS.map((b) => (
+                  {brandList.map((b) => (
                     <button
                       key={b}
                       onClick={() => setBrand(b)}

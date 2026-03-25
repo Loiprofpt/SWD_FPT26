@@ -29,4 +29,22 @@ namespace STEM_Shop.Services.DTOs
         public DateTime? CreatedAt { get; set; }
         public int? IsBlocked { get; set; }
     }
+
+    public class UserProfileResponse
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Role { get; set; }
+    }
+
+    public class UpdateProfileRequest
+    {
+        [Required(ErrorMessage = "Họ tên không được để trống")]
+        public string FullName { get; set; }
+        
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string PhoneNumber { get; set; }
+    }
 }
