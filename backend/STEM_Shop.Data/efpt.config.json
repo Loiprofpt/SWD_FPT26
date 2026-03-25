@@ -23,7 +23,19 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[CartItems]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Carts]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Categories]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[InventoryLogs]",
          "ObjectType": 0
       },
       {
@@ -48,6 +60,14 @@
       },
       {
          "Name": "[dbo].[Users]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Warehouses]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[WarehouseStocks]",
          "ObjectType": 0
       }
    ],

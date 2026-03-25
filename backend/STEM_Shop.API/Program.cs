@@ -13,7 +13,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 // 1. Add Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+       
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 
 // 2. Config CORS (Cho phép Frontend gọi API)
 builder.Services.AddCors(options =>
@@ -42,7 +48,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "STEM_Shop",
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "STEM_Shop_User",
-        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SecretKeyDayLaKhoaBiMatCuaSTEMShop2024"))
+        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SecretKeyDayLaKhoaBiMatCuaSTEMShop2024")),
+
+        RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
     };
 });
 
@@ -95,6 +103,7 @@ builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 
 var app = builder.Build();
 
@@ -121,7 +130,7 @@ if (app.Environment.IsDevelopment() || true) // Luôn bật Swagger để dễ t
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection();   
 app.UseCors("AllowFrontend"); // Kích hoạt CORS
 app.UseAuthentication(); // Nếu có cấu hình Auth
 app.UseAuthorization();

@@ -17,6 +17,8 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(int userId, CreateOrderFromCartRequest request)
         {
+            // Sử dụng Transaction để đảm bảo an toàn dữ liệu kho
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var cart = await _context.Carts
@@ -29,50 +31,96 @@ namespace STEM_Shop.Services.Implementations
                     return new ApiResponse<OrderResponse> { Success = false, Message = "Giỏ hàng trống" };
                 }
 
-                var invalidItem = cart.CartItems.FirstOrDefault(ci => ci.Product == null);
-                if (invalidItem != null)
-                {
-                    return new ApiResponse<OrderResponse> { Success = false, Message = "Có sản phẩm trong giỏ hàng không tồn tại" };
-                }
-
-                var total = cart.CartItems.Sum(ci => ci.Product.Price * ci.Quantity);
-
+                // 1. Tạo đối tượng Order trước
                 var order = new Order
                 {
                     UserId = userId,
                     Address = request.Address,
                     Status = "Pending",
                     OrderDate = DateTime.Now,
-                    TotalAmount = total
+                    TotalAmount = 0 // Sẽ tính toán sau khi check kho
                 };
 
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
 
-                var details = cart.CartItems.Select(ci => new OrderDetail
+                int totalCalculated = 0;
+
+                // 2. Duyệt từng sản phẩm để kiểm tra và trừ kho
+                foreach (var item in cart.CartItems)
                 {
-                    OrderId = order.Id,
-                    ProductId = ci.ProductId,
-                    Quantity = ci.Quantity,
-                    Price = ci.Product.Price
-                }).ToList();
+                    var product = item.Product;
+                    if (product == null) throw new Exception("Sản phẩm không tồn tại.");
 
-                _context.OrderDetails.AddRange(details);
+                    // Kiểm tra tổng tồn kho trước
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        throw new Exception($"Sản phẩm '{product.Name}' không đủ số lượng trong tổng kho (Còn {product.StockQuantity}).");
+                    }
 
+                    // Tìm kho cụ thể còn đủ hàng (Ưu tiên kho có nhiều hàng nhất)
+                    var warehouseStock = await _context.WarehouseStocks
+                        .Where(ws => ws.ProductId == item.ProductId && ws.Quantity >= item.Quantity)
+                        .OrderByDescending(ws => ws.Quantity)
+                        .FirstOrDefaultAsync();
+
+                    if (warehouseStock == null)
+                    {
+                        throw new Exception($"Sản phẩm '{product.Name}' hiện không có đủ số lượng trong bất kỳ kho riêng lẻ nào.");
+                    }
+
+                    // A. Trừ tổng tồn kho ở bảng Product
+                    product.StockQuantity -= item.Quantity;
+
+                    // B. Trừ tồn kho tại Warehouse cụ thể
+                    warehouseStock.Quantity -= item.Quantity;
+
+                    // C. Ghi Log biến động kho (Xuất kho - OUT)
+                    _context.InventoryLogs.Add(new InventoryLog
+                    {
+                        ProductId = item.ProductId,
+                        WarehouseId = warehouseStock.WarehouseId,
+                        Type = "OUT",
+                        Quantity = item.Quantity,
+                        LogDate = DateTime.Now,
+                        Note = $"Xuất kho cho đơn hàng #{order.Id}"
+                    });
+
+                    // D. Tạo OrderDetail
+                    var detail = new OrderDetail
+                    {
+                        OrderId = order.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        Price = product.Price
+                    };
+                    _context.OrderDetails.Add(detail);
+
+                    totalCalculated += (product.Price * item.Quantity);
+                }
+
+                // 3. Cập nhật lại tổng tiền thực tế và xóa giỏ hàng
+                order.TotalAmount = totalCalculated;
                 _context.CartItems.RemoveRange(cart.CartItems);
 
                 await _context.SaveChangesAsync();
+
+                // Xác nhận hoàn tất giao dịch
+                await transaction.CommitAsync();
 
                 return await GetOrderByIdAsync(order.Id, userId);
             }
             catch (Exception ex)
             {
+                // Nếu có bất kỳ lỗi nào (hết hàng giữa chừng), hoàn tác toàn bộ
+                await transaction.RollbackAsync();
                 return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message };
             }
         }
 
         public async Task<ApiResponse<OrderResponse>> CancelMyOrderAsync(int userId, int orderId)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var order = await _context.Orders
@@ -80,42 +128,53 @@ namespace STEM_Shop.Services.Implementations
                     .ThenInclude(od => od.Product)
                     .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
 
-                if (order == null)
-                {
-                    return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy đơn hàng" };
-                }
+                if (order == null) return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy đơn hàng" };
 
                 if (IsShippingStarted(order.Status))
-                {
-                    return new ApiResponse<OrderResponse>
-                    {
-                        Success = false,
-                        Message = "Không thể hủy đơn hàng khi đơn hàng đã bắt đầu giao."
-                    };
-                }
+                    return new ApiResponse<OrderResponse> { Success = false, Message = "Đơn đang giao, không thể hủy." };
 
-                if (string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                if (order.Status == "Cancelled")
+                    return new ApiResponse<OrderResponse> { Success = false, Message = "Đơn đã hủy trước đó." };
+
+                // LOGIC HOÀN KHO: Khi hủy đơn, phải trả lại hàng cho kho
+                foreach (var detail in order.OrderDetails)
                 {
-                    return new ApiResponse<OrderResponse>
+                    if (detail.ProductId.HasValue)
                     {
-                        Success = false,
-                        Message = "Đơn hàng đã được hủy trước đó."
-                    };
+                        // 1. Cộng lại vào tổng kho
+                        var product = await _context.Products.FindAsync(detail.ProductId);
+                        if (product != null) product.StockQuantity += detail.Quantity ?? 0;
+
+                        // 2. Cộng lại vào kho gần nhất (hoặc kho ban đầu nếu bạn lưu WarehouseId vào OrderDetail)
+                        // Ở đây ta cộng vào kho đầu tiên tìm thấy của sản phẩm đó
+                        var ws = await _context.WarehouseStocks.FirstOrDefaultAsync(x => x.ProductId == detail.ProductId);
+                        if (ws != null)
+                        {
+                            ws.Quantity += detail.Quantity ?? 0;
+
+                            // Ghi Log hoàn kho (Nhập lại - IN)
+                            _context.InventoryLogs.Add(new InventoryLog
+                            {
+                                ProductId = detail.ProductId,
+                                WarehouseId = ws.WarehouseId,
+                                Type = "IN",
+                                Quantity = detail.Quantity,
+                                LogDate = DateTime.Now,
+                                Note = $"Hoàn kho từ việc hủy đơn hàng #{order.Id}"
+                            });
+                        }
+                    }
                 }
 
                 order.Status = "Cancelled";
-                _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-                return new ApiResponse<OrderResponse>
-                {
-                    Success = true,
-                    Message = "Hủy đơn hàng thành công",
-                    Data = MapToOrderResponse(order)
-                };
+                return new ApiResponse<OrderResponse> { Success = true, Message = "Hủy đơn và hoàn kho thành công", Data = MapToOrderResponse(order) };
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message };
             }
         }
@@ -131,14 +190,9 @@ namespace STEM_Shop.Services.Implementations
                     .OrderByDescending(o => o.OrderDate)
                     .ToListAsync();
 
-                var dtos = orders.Select(MapToOrderResponse).ToList();
-
-                return new ApiResponse<List<OrderResponse>> { Success = true, Message = "Lấy danh sách đơn hàng thành công", Data = dtos };
+                return new ApiResponse<List<OrderResponse>> { Success = true, Data = orders.Select(MapToOrderResponse).ToList() };
             }
-            catch (Exception ex)
-            {
-                return new ApiResponse<List<OrderResponse>> { Success = false, Message = ex.Message };
-            }
+            catch (Exception ex) { return new ApiResponse<List<OrderResponse>> { Success = false, Message = ex.Message }; }
         }
 
         public async Task<ApiResponse<List<OrderResponse>>> GetAllOrdersAsync()
@@ -151,19 +205,9 @@ namespace STEM_Shop.Services.Implementations
                     .OrderByDescending(o => o.OrderDate)
                     .ToListAsync();
 
-                var dtos = orders.Select(MapToOrderResponse).ToList();
-
-                return new ApiResponse<List<OrderResponse>>
-                {
-                    Success = true,
-                    Message = "Lấy danh sách đơn hàng thành công",
-                    Data = dtos
-                };
+                return new ApiResponse<List<OrderResponse>> { Success = true, Data = orders.Select(MapToOrderResponse).ToList() };
             }
-            catch (Exception ex)
-            {
-                return new ApiResponse<List<OrderResponse>> { Success = false, Message = ex.Message };
-            }
+            catch (Exception ex) { return new ApiResponse<List<OrderResponse>> { Success = false, Message = ex.Message }; }
         }
 
         public async Task<ApiResponse<OrderResponse>> UpdateOrderAsync(int orderId, UpdateOrderRequest request)
@@ -175,186 +219,63 @@ namespace STEM_Shop.Services.Implementations
                     .ThenInclude(od => od.Product)
                     .FirstOrDefaultAsync(o => o.Id == orderId);
 
-                if (order == null)
-                {
-                    return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy đơn hàng" };
-                }
+                if (order == null) return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy" };
 
-                if (IsShippingStarted(order.Status) && !string.IsNullOrWhiteSpace(request.Address))
-                {
-                    return new ApiResponse<OrderResponse>
-                    {
-                        Success = false,
-                        Message = "Không thể cập nhật địa chỉ khi đơn hàng đã bắt đầu giao."
-                    };
-                }
+                if (!string.IsNullOrWhiteSpace(request.Address)) order.Address = request.Address;
+                if (!string.IsNullOrWhiteSpace(request.Status)) order.Status = request.Status;
 
-                if (!string.IsNullOrWhiteSpace(request.Address))
-                {
-                    order.Address = request.Address;
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.Status))
-                {
-                    order.Status = request.Status;
-                }
-
-                _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
-
-                return new ApiResponse<OrderResponse>
-                {
-                    Success = true,
-                    Message = "Cập nhật đơn hàng thành công",
-                    Data = MapToOrderResponse(order)
-                };
+                return new ApiResponse<OrderResponse> { Success = true, Data = MapToOrderResponse(order) };
             }
-            catch (Exception ex)
-            {
-                return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message };
-            }
+            catch (Exception ex) { return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message }; }
         }
 
         public async Task<ApiResponse<OrderResponse>> UpdateMyOrderAsync(int userId, int orderId, UpdateMyOrderRequest request)
         {
+            // Tương tự Create, nếu thay đổi số lượng ở đây bạn cũng phải xử lý cộng/trừ kho 
+            // Nhưng để đơn giản cho đồ án, thường ta chỉ cho phép sửa địa chỉ.
             try
             {
-                var order = await _context.Orders
-                    .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Product)
-                    .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+                var order = await _context.Orders.Include(o => o.OrderDetails).FirstOrDefaultAsync(x => x.Id == orderId && x.UserId == userId);
+                if (order == null || IsShippingStarted(order.Status)) return new ApiResponse<OrderResponse> { Success = false, Message = "Không thể sửa" };
 
-                if (order == null)
-                {
-                    return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy đơn hàng" };
-                }
+                if (!string.IsNullOrWhiteSpace(request.Address)) order.Address = request.Address;
 
-                if (IsShippingStarted(order.Status))
-                {
-                    return new ApiResponse<OrderResponse>
-                    {
-                        Success = false,
-                        Message = "Không thể cập nhật đơn hàng khi đơn hàng đã bắt đầu giao."
-                    };
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.Address))
-                {
-                    order.Address = request.Address;
-                }
-
-                if (request.Items != null && request.Items.Count > 0)
-                {
-                    foreach (var item in request.Items)
-                    {
-                        if (item.Quantity <= 0)
-                        {
-                            return new ApiResponse<OrderResponse>
-                            {
-                                Success = false,
-                                Message = "Số lượng phải lớn hơn 0."
-                            };
-                        }
-
-                        var detail = order.OrderDetails.FirstOrDefault(d => d.Id == item.OrderDetailId);
-                        if (detail == null)
-                        {
-                            return new ApiResponse<OrderResponse>
-                            {
-                                Success = false,
-                                Message = $"Không tìm thấy sản phẩm trong đơn hàng (OrderDetailId={item.OrderDetailId})."
-                            };
-                        }
-
-                        detail.Quantity = item.Quantity;
-                        _context.OrderDetails.Update(detail);
-                    }
-                }
-
-                order.TotalAmount = order.OrderDetails.Sum(d => (d.Price ?? 0) * (d.Quantity ?? 0));
-                _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
-
-                return new ApiResponse<OrderResponse>
-                {
-                    Success = true,
-                    Message = "Cập nhật đơn hàng thành công",
-                    Data = MapToOrderResponse(order)
-                };
+                return new ApiResponse<OrderResponse> { Success = true, Data = MapToOrderResponse(order) };
             }
-            catch (Exception ex)
-            {
-                return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message };
-            }
-        }
-
-        private static bool IsShippingStarted(string? status)
-        {
-            if (string.IsNullOrWhiteSpace(status)) return false;
-            status = status.Trim();
-            return status.Equals("Shipping", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("Shipped", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("Delivered", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+            catch (Exception ex) { return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message }; }
         }
 
         public async Task<ApiResponse<bool>> DeleteOrderAsync(int orderId)
         {
             try
             {
-                var order = await _context.Orders
-                    .Include(o => o.OrderDetails)
-                    .FirstOrDefaultAsync(o => o.Id == orderId);
+                var order = await _context.Orders.Include(o => o.OrderDetails).FirstOrDefaultAsync(o => o.Id == orderId);
+                if (order == null) return new ApiResponse<bool> { Success = false };
 
-                if (order == null)
-                {
-                    return new ApiResponse<bool> { Success = false, Message = "Không tìm thấy đơn hàng" };
-                }
-
-                if (order.OrderDetails.Any())
-                {
-                    _context.OrderDetails.RemoveRange(order.OrderDetails);
-                }
-
+                _context.OrderDetails.RemoveRange(order.OrderDetails);
                 _context.Orders.Remove(order);
                 await _context.SaveChangesAsync();
-
-                return new ApiResponse<bool> { Success = true, Message = "Xóa đơn hàng thành công", Data = true };
+                return new ApiResponse<bool> { Success = true, Data = true };
             }
-            catch (DbUpdateException)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Message = "Không thể xóa đơn hàng vì đang có dữ liệu liên quan."
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<bool> { Success = false, Message = ex.Message };
-            }
+            catch (Exception ex) { return new ApiResponse<bool> { Success = false, Message = ex.Message }; }
         }
 
         private async Task<ApiResponse<OrderResponse>> GetOrderByIdAsync(int orderId, int? userId = null)
         {
-            var query = _context.Orders
-                .Include(o => o.OrderDetails)
-                .ThenInclude(od => od.Product)
-                .AsQueryable();
-
-            if (userId.HasValue)
-            {
-                query = query.Where(o => o.UserId == userId.Value);
-            }
-
+            var query = _context.Orders.Include(o => o.OrderDetails).ThenInclude(od => od.Product).AsQueryable();
+            if (userId.HasValue) query = query.Where(o => o.UserId == userId.Value);
             var order = await query.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null) return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy" };
+            return new ApiResponse<OrderResponse> { Success = true, Data = MapToOrderResponse(order) };
+        }
 
-            if (order == null)
-            {
-                return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy đơn hàng" };
-            }
-
-            return new ApiResponse<OrderResponse> { Success = true, Message = "Lấy đơn hàng thành công", Data = MapToOrderResponse(order) };
+        private static bool IsShippingStarted(string? status)
+        {
+            if (string.IsNullOrWhiteSpace(status)) return false;
+            string[] shippingStatuses = { "Shipping", "Shipped", "Delivered", "Completed" };
+            return shippingStatuses.Contains(status, StringComparer.OrdinalIgnoreCase);
         }
 
         private static OrderResponse MapToOrderResponse(Order order)
@@ -365,13 +286,13 @@ namespace STEM_Shop.Services.Implementations
                 UserId = order.UserId ?? 0,
                 OrderDate = order.OrderDate,
                 TotalAmount = order.TotalAmount ?? 0,
-                Address = order.Address ?? string.Empty,
-                Status = order.Status ?? string.Empty,
+                Address = order.Address ?? "",
+                Status = order.Status ?? "",
                 Items = order.OrderDetails.Select(od => new OrderItemResponse
                 {
                     OrderDetailId = od.Id,
                     ProductId = od.ProductId ?? 0,
-                    ProductName = od.Product?.Name ?? string.Empty,
+                    ProductName = od.Product?.Name ?? "",
                     Price = od.Price ?? 0,
                     Quantity = od.Quantity ?? 0
                 }).ToList()

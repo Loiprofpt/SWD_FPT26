@@ -25,6 +25,8 @@ public partial class STEM_Shop_DBContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; }
 
+    public virtual DbSet<InventoryLog> InventoryLogs { get; set; }
+
     public virtual DbSet<Order> Orders { get; set; }
 
     public virtual DbSet<OrderDetail> OrderDetails { get; set; }
@@ -37,9 +39,13 @@ public partial class STEM_Shop_DBContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<Warehouse> Warehouses { get; set; }
+
+    public virtual DbSet<WarehouseStock> WarehouseStocks { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        // Sử dụng cấu hình từ Program.cs thay vì hardcode
+        
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -54,6 +60,27 @@ public partial class STEM_Shop_DBContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(500);
         });
 
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.HasOne(d => d.User).WithMany(p => p.Carts)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Cart_User");
+        });
+
+        modelBuilder.Entity<CartItem>(entity =>
+        {
+            entity.Property(e => e.Quantity).HasDefaultValue(1);
+
+            entity.HasOne(d => d.Cart).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.CartId)
+                .HasConstraintName("FK_CartItem_Cart");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.ProductId)
+                .HasConstraintName("FK_CartItem_Product");
+        });
+
         modelBuilder.Entity<Category>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC070E912559");
@@ -64,26 +91,23 @@ public partial class STEM_Shop_DBContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(500);
         });
 
-        modelBuilder.Entity<Cart>(entity =>
+        modelBuilder.Entity<InventoryLog>(entity =>
         {
-            entity.HasKey(e => e.Id);
+            entity.HasKey(e => e.Id).HasName("PK__Inventor__3214EC072C958B29");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Carts)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("FK_Cart_User");
-        });
+            entity.Property(e => e.LogDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.Type).HasMaxLength(20);
 
-        modelBuilder.Entity<CartItem>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-
-            entity.HasOne(d => d.Cart).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.CartId)
-                .HasConstraintName("FK_CartItem_Cart");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.CartItems)
+            entity.HasOne(d => d.Product).WithMany(p => p.InventoryLogs)
                 .HasForeignKey(d => d.ProductId)
-                .HasConstraintName("FK_CartItem_Product");
+                .HasConstraintName("FK_Log_Product");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InventoryLogs)
+                .HasForeignKey(d => d.WarehouseId)
+                .HasConstraintName("FK_Log_Warehouse");
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -181,6 +205,38 @@ public partial class STEM_Shop_DBContext : DbContext
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
                 .HasConstraintName("FK_User_Role");
+        });
+
+        modelBuilder.Entity<Warehouse>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Warehous__3214EC0761449D01");
+
+            entity.Property(e => e.ContactPhone).HasMaxLength(20);
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.ManagerName).HasMaxLength(100);
+            entity.Property(e => e.WarehouseName)
+                .IsRequired()
+                .HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<WarehouseStock>(entity =>
+        {
+            entity.HasKey(e => new { e.WarehouseId, e.ProductId }).HasName("PK__Warehous__ED4863951DDD006B");
+
+            entity.Property(e => e.Quantity).HasDefaultValue(0);
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.WarehouseStocks)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Stock_Product");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.WarehouseStocks)
+                .HasForeignKey(d => d.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Stock_Warehouse");
         });
 
         OnModelCreatingPartial(modelBuilder);
