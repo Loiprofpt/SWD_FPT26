@@ -3,22 +3,15 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { productApi } from '../api/productApi';
+import { categoryApi } from '../api/categoryApi';
 
-const MOCK_PRODUCTS = [
-  { id: 1, name: 'Arduino Uno R3', price: 250000, stockQuantity: 100, categoryName: 'Linh kiện', brandName: 'Arduino', imageUrl: '', ageRange: '10+' },
-  { id: 2, name: 'Raspberry Pi 4 Model B', price: 1500000, stockQuantity: 50, categoryName: 'Linh kiện', brandName: 'Raspberry Pi', imageUrl: '', ageRange: '12+' },
-  { id: 3, name: 'LEGO Mindstorms EV3', price: 8500000, stockQuantity: 20, categoryName: 'Robot', brandName: 'LEGO', imageUrl: '', ageRange: '10+' },
-  { id: 4, name: 'Kit Robot Car 4WD', price: 450000, stockQuantity: 75, categoryName: 'Robot', brandName: 'Arduino', imageUrl: '', ageRange: '12+' },
-  { id: 5, name: 'Sensor Kit 37 in 1', price: 350000, stockQuantity: 200, categoryName: 'Kit học tập', brandName: 'Arduino', imageUrl: '', ageRange: '10+' },
-  { id: 6, name: 'Breadboard Kit Cơ Bản', price: 120000, stockQuantity: 300, categoryName: 'Linh kiện', brandName: 'Arduino', imageUrl: '', ageRange: '8+' },
-  { id: 7, name: 'LEGO Education SPIKE', price: 7200000, stockQuantity: 15, categoryName: 'Kit học tập', brandName: 'LEGO', imageUrl: '', ageRange: '8+' },
-  { id: 8, name: 'Raspberry Pi Pico W', price: 180000, stockQuantity: 150, categoryName: 'Linh kiện', brandName: 'Raspberry Pi', imageUrl: '', ageRange: '12+' },
-];
-
-const CATEGORIES = [
-  { name: 'Robot', count: 25, color: 'from-blue-500 to-cyan-400' },
-  { name: 'Linh kiện', count: 120, color: 'from-emerald-500 to-teal-400' },
-  { name: 'Kit học tập', count: 45, color: 'from-violet-500 to-purple-400' },
+const CATEGORY_COLORS = [
+  'from-blue-500 to-cyan-400',
+  'from-emerald-500 to-teal-400',
+  'from-violet-500 to-purple-400',
+  'from-rose-500 to-pink-400',
+  'from-amber-500 to-orange-400',
+  'from-indigo-500 to-blue-400',
 ];
 
 const STATS = [
@@ -29,11 +22,15 @@ const STATS = [
 ];
 
 export default function Home() {
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     productApi.getAll().then((res) => {
       if (res?.success) setProducts(res.data);
+    }).catch(() => {});
+    categoryApi.getAll().then((res) => {
+      if (res?.success) setCategories(res.data);
     }).catch(() => {});
   }, []);
 
@@ -200,9 +197,9 @@ export default function Home() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {CATEGORIES.map((cat, i) => (
+            {categories.map((cat, i) => (
               <motion.div
-                key={cat.name}
+                key={cat.id}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -210,13 +207,13 @@ export default function Home() {
                 whileHover={{ y: -6, scale: 1.02 }}
               >
                 <Link
-                  to={`/products?category=${cat.name}`}
-                  className={`block bg-gradient-to-br ${cat.color} rounded-3xl p-8 text-white relative overflow-hidden group`}
+                  to={`/products?category=${cat.categoryName || cat.name}`}
+                  className={`block bg-gradient-to-br ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]} rounded-3xl p-8 text-white relative overflow-hidden group`}
                 >
                   <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-700" />
                   <div className="relative z-10">
-                    <h3 className="text-2xl font-bold mb-2">{cat.name}</h3>
-                    <p className="text-white/80">{cat.count} sản phẩm</p>
+                    <h3 className="text-2xl font-bold mb-2">{cat.categoryName || cat.name}</h3>
+                    <p className="text-white/80">{cat.description || 'Sản phẩm STEM'}</p>
                     <span className="inline-block mt-4 bg-white/20 text-white text-sm font-semibold px-4 py-2 rounded-xl group-hover:bg-white/30 transition-colors">
                       Xem ngay →
                     </span>

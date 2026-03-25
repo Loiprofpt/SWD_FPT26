@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
 import { orderApi } from '../api/orderApi';
 
 const Profile = () => {
+    const [searchParams] = useSearchParams();
     const [profile, setProfile] = useState({
         fullName: '',
         email: '',
@@ -24,7 +26,7 @@ const Profile = () => {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     // State cho Lịch sử đơn hàng
-    const [activeTab, setActiveTab] = useState('profile');
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'orders' ? 'orders' : 'profile');
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
 

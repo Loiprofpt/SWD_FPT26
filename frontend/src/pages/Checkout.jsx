@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useCartStore from '../store/useCartStore';
 import useAuthStore from '../store/useAuthStore';
@@ -7,9 +7,9 @@ import { orderApi } from '../api/orderApi';
 import api from '../api/axiosConfig';
 
 const PAYMENT_METHODS = [
-  { id: 'COD', label: 'Thanh toán khi nhận hàng (COD)', desc: 'Trả tiền mặt khi nhận hàng' },
-  { id: 'ATM', label: 'Chuyển khoản ngân hàng', desc: 'Chuyển khoản qua ATM/Internet Banking' },
-  { id: 'Momo', label: 'Ví Momo', desc: 'Thanh toán qua ví điện tử Momo' },
+  { id: 'COD', label: 'Thanh toán khi nhận hàng (COD)', desc: 'Trả tiền mặt khi nhận hàng', icon: '💵' },
+  { id: 'ATM', label: 'Chuyển khoản ngân hàng', desc: 'Chuyển khoản qua ATM/Internet Banking', icon: '🏦' },
+  { id: 'Momo', label: 'Ví Momo', desc: 'Thanh toán qua ví điện tử Momo', icon: '📱' },
 ];
 
 export default function Checkout() {
@@ -22,42 +22,63 @@ export default function Checkout() {
   const [form, setForm] = useState({ address: '', phone: '', note: '' });
   const [payment, setPayment] = useState('COD');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [orderResult, setOrderResult] = useState(null); // Lưu kết quả đơn hàng
+  const [step, setStep] = useState('form'); // 'form' | 'processing' | 'success' | 'error'
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    setLoading(true);
-    try {
-      // 1. Đồng bộ giỏ hàng với backend
-      await api.delete('/carts').catch(()=> {}); // Xóa giỏ hàng cũ nếu có
-      
-      for (const item of items) {
-        await api.post('/carts/items', { productId: item.id, quantity: item.quantity });
-      }
+    if (!isAuthenticated) { navigate('/login'); return; }
+    if (items.length === 0) return;
 
-      // 2. Tạo đơn hàng từ backend cart
-      const response = await orderApi.create({
-        address: form.address,
-      });
-      
+    setLoading(true);
+    setStep('processing');
+    setErrorMsg('');
+
+    try {
+      // ===== BƯỚC 1: Xóa giỏ hàng cũ trên Backend =====
+      await api.delete('/carts').catch(() => {});
+
+      // ===== BƯỚC 2: Đồng bộ từng sản phẩm lên giỏ hàng Backend (song song) =====
+      await Promise.all(
+        items.map(item => api.post('/carts/items', { productId: item.id, quantity: item.quantity }))
+      );
+
+      // ===== BƯỚC 3: Tạo đơn hàng từ giỏ hàng Backend =====
+      const response = await orderApi.create({ address: form.address });
+
       if (response && response.success) {
-        setSuccess(true);
+        // Đặt hàng thành công — xóa giỏ hàng FE + chuyển màn hình success
         clearCart();
+        setOrderResult(response.data);
+        setStep('success');
       } else {
-        alert(response?.message || 'Đặt hàng thất bại, vui lòng thử lại.');
+        setErrorMsg(response?.message || 'Đặt hàng thất bại. Vui lòng thử lại.');
+        setStep('error');
       }
     } catch (error) {
-      alert(error?.message || 'Có lỗi xảy ra trong quá trình kết nối.');
+      setErrorMsg(error?.message || 'Có lỗi xảy ra trong quá trình xử lý đơn hàng.');
+      setStep('error');
     } finally {
       setLoading(false);
     }
   };
 
-  if (success) {
+  // ==================== MÀN HÌNH ĐANG XỬ LÝ ====================
+  if (step === 'processing') {
+    return (
+      <div className="pt-24 pb-16 min-h-screen flex items-center justify-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center max-w-md mx-auto">
+          <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-primary-dark mb-2">Đang xử lý đơn hàng...</h2>
+          <p className="text-gray-500">Vui lòng đợi trong giây lát, hệ thống đang đồng bộ giỏ hàng và tạo đơn.</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ==================== MÀN HÌNH THÀNH CÔNG ====================
+  if (step === 'success') {
     return (
       <div className="pt-24 pb-16 min-h-screen flex items-center justify-center">
         <motion.div
@@ -70,43 +91,90 @@ export default function Checkout() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', damping: 10 }}
-            className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6"
+            className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
           >
-            <span className="text-success text-5xl font-bold">✓</span>
+            <svg className="w-12 h-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
           </motion.div>
-          <h2 className="text-3xl font-bold text-primary-dark mb-4">Đặt hàng thành công!</h2>
-          <p className="text-gray-500 mb-8">
-            Đơn hàng của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.
+          <h2 className="text-3xl font-bold text-primary-dark mb-2">Đặt hàng thành công!</h2>
+          {orderResult && (
+            <div className="bg-gray-50 rounded-xl p-4 mb-4 text-left">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-500">Mã đơn hàng:</span>
+                <span className="font-bold text-primary-dark">#{orderResult.id}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-500">Tổng tiền:</span>
+                <span className="font-bold text-secondary">{formatPrice(orderResult.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-500">Trạng thái:</span>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">Chờ xử lý</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Địa chỉ:</span>
+                <span className="text-gray-700 text-right max-w-[200px]">{orderResult.address}</span>
+              </div>
+            </div>
+          )}
+          <p className="text-gray-500 mb-6 text-sm">
+            Đơn hàng của bạn đã được ghi nhận và đang chờ Admin xác nhận.
+            Bạn có thể theo dõi trạng thái đơn hàng trong <strong>Lịch sử mua hàng</strong>.
           </p>
-          <button onClick={() => navigate('/')} className="btn-primary cursor-pointer">
-            Về trang chủ
-          </button>
+          <div className="space-y-3">
+            <Link to="/profile" className="btn-primary block w-full py-3 text-center font-semibold shadow-lg shadow-primary/30">
+              Xem lịch sử đơn hàng
+            </Link>
+            <button onClick={() => navigate('/')} className="block w-full py-3 text-gray-500 font-medium hover:bg-gray-50 rounded-xl transition-colors cursor-pointer">
+              Về trang chủ
+            </button>
+          </div>
         </motion.div>
       </div>
     );
   }
 
+  // ==================== MÀN HÌNH LỖI ====================
+  if (step === 'error') {
+    return (
+      <div className="pt-24 pb-16 min-h-screen flex items-center justify-center">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md mx-auto">
+          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-12 h-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Đặt hàng thất bại</h2>
+          <p className="text-gray-500 mb-6">{errorMsg}</p>
+          <div className="space-y-3">
+            <button onClick={() => setStep('form')} className="btn-primary w-full py-3 cursor-pointer">Thử lại</button>
+            <button onClick={() => navigate('/cart')} className="w-full py-3 text-gray-500 font-medium hover:bg-gray-50 rounded-xl transition-colors cursor-pointer">
+              Quay lại giỏ hàng
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ==================== TRANG GIỎ TRỐNG ====================
   if (items.length === 0) {
     return (
       <div className="pt-24 pb-16 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-400 mb-4">Giỏ hàng trống</h2>
-          <button onClick={() => navigate('/products')} className="btn-primary cursor-pointer">
-            Tiếp tục mua sắm
-          </button>
+          <button onClick={() => navigate('/products')} className="btn-primary cursor-pointer">Tiếp tục mua sắm</button>
         </div>
       </div>
     );
   }
 
+  // ==================== FORM CHECKOUT ====================
   return (
     <div className="pt-24 pb-16 min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <h1 className="text-3xl sm:text-4xl font-bold text-primary-dark mb-8">Thanh toán</h1>
         </motion.div>
 
@@ -114,75 +182,40 @@ export default function Checkout() {
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               {/* Shipping Info */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="card p-6"
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-6">
                 <h3 className="text-lg font-bold text-primary-dark mb-4">Thông tin giao hàng</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-500 mb-1">Địa chỉ giao hàng *</label>
-                    <input
-                      required
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      placeholder="Nhập địa chỉ chi tiết..."
-                      className="input-field"
-                    />
+                    <input required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      placeholder="Nhập địa chỉ chi tiết..." className="input-field" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-500 mb-1">Số điện thoại *</label>
-                    <input
-                      required
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      placeholder="Nhập số điện thoại..."
-                      className="input-field"
-                    />
+                    <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      placeholder="Nhập số điện thoại..." className="input-field" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-500 mb-1">Ghi chú</label>
-                    <textarea
-                      value={form.note}
-                      onChange={(e) => setForm({ ...form, note: e.target.value })}
-                      placeholder="Ghi chú thêm cho đơn hàng..."
-                      rows={3}
-                      className="input-field resize-none"
-                    />
+                    <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })}
+                      placeholder="Ghi chú thêm cho đơn hàng..." rows={3} className="input-field resize-none" />
                   </div>
                 </div>
               </motion.div>
 
               {/* Payment Method */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="card p-6"
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card p-6">
                 <h3 className="text-lg font-bold text-primary-dark mb-4">Phương thức thanh toán</h3>
                 <div className="space-y-3">
                   {PAYMENT_METHODS.map((method) => (
-                    <label
-                      key={method.id}
+                    <label key={method.id}
                       className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                        payment === method.id
-                          ? 'border-secondary bg-secondary/5'
-                          : 'border-gray-100 hover:border-gray-200'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={method.id}
-                        checked={payment === method.id}
-                        onChange={(e) => setPayment(e.target.value)}
-                        className="mt-1 accent-secondary"
-                      />
-                      <div>
-                        <div className="font-semibold text-primary-dark">{method.label}</div>
+                        payment === method.id ? 'border-secondary bg-secondary/5 shadow-sm' : 'border-gray-100 hover:border-gray-200'
+                      }`}>
+                      <input type="radio" name="payment" value={method.id} checked={payment === method.id}
+                        onChange={(e) => setPayment(e.target.value)} className="mt-1 accent-secondary" />
+                      <div className="flex-1">
+                        <div className="font-semibold text-primary-dark">{method.icon} {method.label}</div>
                         <div className="text-sm text-gray-400">{method.desc}</div>
                       </div>
                     </label>
@@ -192,11 +225,7 @@ export default function Checkout() {
             </div>
 
             {/* Order Summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <div className="card p-6 sticky top-24">
                 <h3 className="text-lg font-bold text-primary-dark mb-4">Đơn hàng ({items.length})</h3>
 
@@ -218,7 +247,7 @@ export default function Checkout() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Vận chuyển</span>
-                    <span className="text-success">Miễn phí</span>
+                    <span className="text-green-600 font-medium">Miễn phí</span>
                   </div>
                 </div>
 
@@ -229,15 +258,12 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary w-full flex items-center justify-center gap-2"
-                >
+                <button type="submit" disabled={loading}
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 text-base font-semibold shadow-lg shadow-primary/30 cursor-pointer">
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    'Xác nhận đặt hàng'
+                    '🛒 Xác nhận đặt hàng'
                   )}
                 </button>
               </div>

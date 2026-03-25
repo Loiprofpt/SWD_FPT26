@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -38,18 +40,23 @@ function AppRoutes() {
       <main className="flex-1">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
+            {/* Public Routes */}
             <Route path="/" element={<PageTransition><Home /></PageTransition>} />
             <Route path="/products" element={<PageTransition><Products /></PageTransition>} />
             <Route path="/products/:id" element={<PageTransition><ProductDetail /></PageTransition>} />
             <Route path="/cart" element={<PageTransition><Cart /></PageTransition>} />
-            <Route path="/checkout" element={<PageTransition><Checkout /></PageTransition>} />
             <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
             <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
             <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
             <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
-            <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
-            <Route path="/payment/result" element={<PageTransition><PaymentResult /></PageTransition>} />
-            <Route path="/admin" element={<PageTransition><Dashboard /></PageTransition>} />
+
+            {/* Protected Routes (phải đăng nhập) */}
+            <Route path="/checkout" element={<PrivateRoute><PageTransition><Checkout /></PageTransition></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><PageTransition><Profile /></PageTransition></PrivateRoute>} />
+            <Route path="/payment/result" element={<PrivateRoute><PageTransition><PaymentResult /></PageTransition></PrivateRoute>} />
+
+            {/* Admin Routes (chỉ Admin/Staff) */}
+            <Route path="/admin" element={<AdminRoute><PageTransition><Dashboard /></PageTransition></AdminRoute>} />
           </Routes>
         </AnimatePresence>
       </main>
