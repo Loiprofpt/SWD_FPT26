@@ -135,15 +135,15 @@ const Header = () => {
                                         >
                                             Thông tin cá nhân
                                         </Link>
-                                        <Link 
-                                            to="/profile?tab=orders" 
-                                            className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors"
-                                            onClick={() => setShowUserMenu(false)}
-                                        >
-                                            📋 Lịch sử mua hàng
-                                        </Link>
-
-                                        {user.role === 'Admin' && (
+                                        {user.role !== 'Admin' ? (
+                                            <Link 
+                                                to="/profile?tab=orders" 
+                                                className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors"
+                                                onClick={() => setShowUserMenu(false)}
+                                            >
+                                                📋 Lịch sử mua hàng
+                                            </Link>
+                                        ) : (
                                             <Link 
                                                 to="/admin" 
                                                 className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors"

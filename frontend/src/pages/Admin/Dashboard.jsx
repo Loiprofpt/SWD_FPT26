@@ -5,8 +5,9 @@ import { dashboardApi } from '../../api/dashboardApi';
 import { orderApi } from '../../api/orderApi';
 import { categoryApi } from '../../api/categoryApi';
 import { brandApi } from '../../api/brandApi';
+import { warehouseApi } from '../../api/warehouseApi';
 
-const TABS = ['Tổng quan', 'Đơn hàng', 'Sản phẩm', 'Danh mục', 'Thương hiệu'];
+const TABS = ['Tổng quan', 'Đơn hàng', 'Sản phẩm', 'Danh mục', 'Thương hiệu', 'Kho hàng'];
 
 const STATUS_COLORS = {
   Pending: 'bg-yellow-100 text-yellow-700',
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const [orders, setOrders] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [stats, setStats] = useState([
     { label: 'Doanh thu', value: '0đ', color: 'bg-blue-50 text-blue-600' },
     { label: 'Đơn hàng', value: '0', color: 'bg-emerald-50 text-emerald-600' },
@@ -35,7 +37,9 @@ export default function Dashboard() {
   const [editCategory, setEditCategory] = useState(null);
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [editBrand, setEditBrand] = useState(null);
-
+  const [showWarehouseModal, setShowWarehouseModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : '';
 
@@ -58,12 +62,15 @@ export default function Dashboard() {
       loadCategories();
     } else if (tab === 'Thương hiệu') {
       loadBrands();
+    } else if (tab === 'Kho hàng') {
+      loadWarehouses();
     }
   }, [tab]);
 
-  const loadProducts = () => productApi.getAll().then((res) => { if (res.success) setProducts(res.data); }).catch(console.error);
-  const loadCategories = () => categoryApi.getAll().then((res) => { if (res.success) setCategories(res.data); }).catch(console.error);
-  const loadBrands = () => brandApi.getAll().then((res) => { if (res.success) setBrands(res.data); }).catch(console.error);
+  const loadProducts = () => { productApi.getAll().then((res) => { if (res.success) setProducts(res.data); }).catch(console.error); };
+  const loadCategories = () => { categoryApi.getAll().then((res) => { if (res.success) setCategories(res.data); }).catch(console.error); };
+  const loadBrands = () => { brandApi.getAll().then((res) => { if (res.success) setBrands(res.data); }).catch(console.error); };
+  const loadWarehouses = () => { warehouseApi.getAll().then((data) => setWarehouses(data || [])).catch(console.error); };
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
@@ -101,6 +108,54 @@ export default function Dashboard() {
     } catch (error) { alert(error.message || 'Lỗi xóa thương hiệu'); }
   };
 
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    setLoadingAction(true);
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    try {
+      const res = editCategory ? await categoryApi.update(editCategory.id, data) : await categoryApi.create(data);
+      if (res.success) { setShowCategoryModal(false); loadCategories(); } else { alert(res.message || 'Lỗi lưu danh mục'); }
+    } catch (error) { alert(error.message || 'Lỗi lưu danh mục'); }
+    finally { setLoadingAction(false); }
+  };
+
+  const handleSaveBrand = async (e) => {
+    e.preventDefault();
+    setLoadingAction(true);
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    try {
+      const res = editBrand ? await brandApi.update(editBrand.id, data) : await brandApi.create(data);
+      if (res.success) { setShowBrandModal(false); loadBrands(); } else { alert(res.message || 'Lỗi lưu thương hiệu'); }
+    } catch (error) { alert(error.message || 'Lỗi lưu thương hiệu'); }
+    finally { setLoadingAction(false); }
+  };
+
+  const handleCreateWarehouse = async (e) => {
+    e.preventDefault();
+    setLoadingAction(true);
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    try {
+      const res = await warehouseApi.create(data);
+      if (res.success) { setShowWarehouseModal(false); loadWarehouses(); } else { alert(res.message || 'Lỗi tạo kho'); }
+    } catch (error) { alert(error.message || 'Lỗi tạo kho'); }
+    finally { setLoadingAction(false); }
+  };
+
+  const handleImportStock = async (e) => {
+    e.preventDefault();
+    setLoadingAction(true);
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    data.quantity = parseInt(data.quantity); // Ensure quantity is a number
+    try {
+      const res = await warehouseApi.importStock(data);
+      if (res.success) { setShowImportModal(false); loadWarehouses(); loadProducts(); } else { alert(res.message || 'Lỗi nhập hàng'); }
+    } catch (error) { alert(error.message || 'Lỗi nhập hàng'); }
+    finally { setLoadingAction(false); }
+  };
   return (
     <div className="pt-24 pb-16 min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -296,23 +351,295 @@ export default function Dashboard() {
                   </table>
                 </div>
               </div>
-              {showBrandModal && <SimpleModal title={editBrand ? 'Sửa thương hiệu' : 'Thêm thương hiệu'} item={editBrand}
-                fields={[{ key: 'brandName', label: 'Tên thương hiệu', required: true }, { key: 'description', label: 'Mô tả' }]}
-                onClose={() => setShowBrandModal(false)}
-                onSave={async (data) => {
-                  const res = editBrand ? await brandApi.update(editBrand.id, data) : await brandApi.create(data);
-                  if (res.success) { setShowBrandModal(false); loadBrands(); } else { alert(res.message || 'Lỗi'); }
-                }} />}
+
+            </motion.div>
+          )}
+
+          {/* ========== DANH MỤC ========== */}
+          {tab === 'Danh mục' && (
+            <motion.div key="categories" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+              <div className="card overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-primary-dark">Danh mục ({categories.length})</h3>
+                  <button onClick={() => { setEditCategory(null); setShowCategoryModal(true); }} className="btn-primary text-sm py-2 px-4 cursor-pointer">+ Thêm mới</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="bg-gray-50">
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">ID</th>
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Tên danh mục</th>
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Mô tả</th>
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Thao tác</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {categories.map((c) => (
+                        <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{c.id}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-700">{c.categoryName || c.name}</td>
+                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{c.description || '—'}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-3">
+                              <button onClick={() => { setEditCategory(c); setShowCategoryModal(true); }} className="text-sm text-secondary hover:text-secondary-dark cursor-pointer">Sửa</button>
+                              <button onClick={() => handleDeleteCategory(c.id)} className="text-sm text-red-500 hover:text-red-700 cursor-pointer">Xóa</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ========== THƯƠNG HIỆU ========== */}
+          {tab === 'Thương hiệu' && (
+            <motion.div key="brands" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+              <div className="card overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-primary-dark">Thương hiệu ({brands.length})</h3>
+                  <button onClick={() => { setEditBrand(null); setShowBrandModal(true); }} className="btn-primary text-sm py-2 px-4 cursor-pointer">+ Thêm mới</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="bg-gray-50">
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">ID</th>
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Tên thương hiệu</th>
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Mô tả</th>
+                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Thao tác</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {brands.map((b) => (
+                        <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{b.id}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-700">{b.brandName || b.name}</td>
+                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{b.description || '—'}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-3">
+                              <button onClick={() => { setEditBrand(b); setShowBrandModal(true); }} className="text-sm text-secondary hover:text-secondary-dark cursor-pointer">Sửa</button>
+                              <button onClick={() => handleDeleteBrand(b.id)} className="text-sm text-red-500 hover:text-red-700 cursor-pointer">Xóa</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ------------- TAB KHO HÀNG ------------- */}
+          {tab === 'Kho hàng' && (
+            <motion.div key="warehouses" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+              <div className="card p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-primary-dark">Quản lý Kho</h3>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowWarehouseModal(true)} className="btn-primary text-sm py-2 px-4 cursor-pointer">
+                      + Thêm Kho
+                    </button>
+                    <button onClick={() => { loadProducts(); setShowImportModal(true); }} className="px-4 py-2 bg-secondary text-white rounded-xl text-sm font-semibold hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/30 cursor-pointer">
+                      📦 Nhập hàng
+                    </button>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {warehouses.map((w) => (
+                    <div key={w.id} className="border border-gray-100 rounded-xl p-5 hover:border-primary/30 transition-colors">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-bold text-gray-800 text-lg">{w.warehouseName}</h4>
+                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                            📍 {w.location}
+                          </p>
+                        </div>
+                        <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full">
+                          {w.warehouseStocks?.length || 0} mã sản phẩm
+                        </span>
+                      </div>
+                      {w.warehouseStocks?.length > 0 ? (
+                        <div className="space-y-2 mt-4 pt-4 border-t border-gray-50 max-h-48 overflow-y-auto pr-2">
+                          {w.warehouseStocks.map((ws, i) => (
+                            <div key={i} className="flex justify-between text-sm items-center bg-gray-50 px-3 py-2 rounded-lg">
+                              <span className="text-gray-700 truncate mr-2" title={ws.product?.name}>
+                                {ws.product?.name || `Product #${ws.productId}`}
+                              </span>
+                              <span className="font-bold text-secondary bg-white px-2 py-1 rounded shadow-sm border border-gray-100">
+                                Tồn: {ws.quantity}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-4 pt-4 border-t border-gray-50 text-center text-sm text-gray-400 py-4">
+                          Kho đang trống
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* ===================== MODALS ===================== */}
+
+      {/* 1. PRODUCT MODAL */}
+      <AnimatePresence>
+        {showProductModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={() => setShowProductModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-xl font-bold text-primary-dark mb-6">{editProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}</h3>
+              <ProductModalContent product={editProduct} categories={categories} brands={brands}
+                onClose={() => setShowProductModal(false)} onSaved={() => { setShowProductModal(false); loadProducts(); }}
+                loadSupportData={() => { if (!categories.length) loadCategories(); if (!brands.length) loadBrands(); }}
+                loadingAction={loadingAction} setLoadingAction={setLoadingAction} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. CATEGORY MODAL */}
+      <AnimatePresence>
+        {showCategoryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-800">{editCategory ? 'Sửa Danh mục' : 'Thêm Danh mục'}</h3>
+                <button type="button" onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-danger cursor-pointer text-xl">×</button>
+              </div>
+              <form onSubmit={handleSaveCategory} className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên danh mục *</label>
+                    <input name="categoryName" defaultValue={editCategory?.categoryName || editCategory?.name} required className="input-field w-full" placeholder="VD: Robot" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                    <textarea name="description" defaultValue={editCategory?.description} className="input-field w-full resize-none" rows="3" placeholder="Mô tả danh mục..." />
+                  </div>
+                </div>
+                <button type="submit" disabled={loadingAction} className="btn-primary w-full mt-6 py-3 cursor-pointer disabled:opacity-50">
+                  {loadingAction ? 'Đang lưu...' : 'Lưu lại'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. BRAND MODAL */}
+      <AnimatePresence>
+        {showBrandModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-800">{editBrand ? 'Sửa Thương hiệu' : 'Thêm Thương hiệu'}</h3>
+                <button type="button" onClick={() => setShowBrandModal(false)} className="text-gray-400 hover:text-danger cursor-pointer text-xl">×</button>
+              </div>
+              <form onSubmit={handleSaveBrand} className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên thương hiệu *</label>
+                    <input name="brandName" defaultValue={editBrand?.brandName || editBrand?.name} required className="input-field w-full" placeholder="VD: LEGO" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                    <textarea name="description" defaultValue={editBrand?.description} className="input-field w-full resize-none" rows="3" placeholder="Mô tả thương hiệu..." />
+                  </div>
+                </div>
+                <button type="submit" disabled={loadingAction} className="btn-primary w-full mt-6 py-3 cursor-pointer disabled:opacity-50">
+                  {loadingAction ? 'Đang lưu...' : 'Lưu lại'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. CREATE WAREHOUSE MODAL */}
+      <AnimatePresence>
+        {showWarehouseModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-800">Thêm Kho Hàng Mới</h3>
+                <button type="button" onClick={() => setShowWarehouseModal(false)} className="text-gray-400 hover:text-danger cursor-pointer text-xl">×</button>
+              </div>
+              <form onSubmit={handleCreateWarehouse} className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên kho *</label>
+                    <input name="warehouseName" required minLength="3" className="input-field w-full" placeholder="VD: Kho Tổng Quận 1" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vị trí / Địa chỉ *</label>
+                    <input name="location" required minLength="5" className="input-field w-full" placeholder="VD: 123 Lê Lợi, Q1, TP.HCM" />
+                  </div>
+                </div>
+                <button type="submit" disabled={loadingAction} className="btn-primary w-full mt-6 py-3 cursor-pointer disabled:opacity-50">
+                  {loadingAction ? 'Đang tạo...' : 'Tạo kho'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 5. IMPORT STOCK MODAL */}
+      <AnimatePresence>
+        {showImportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-secondary/10">
+                <h3 className="font-bold text-secondary-dark">📦 Nhập hàng vào kho</h3>
+                <button type="button" onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-danger cursor-pointer text-xl">×</button>
+              </div>
+              <form onSubmit={handleImportStock} className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chọn Kho *</label>
+                    <select name="warehouseId" required className="input-field w-full bg-white">
+                      <option value="">-- Chọn kho nhập --</option>
+                      {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouseName}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chọn Sản phẩm *</label>
+                    <select name="productId" required className="input-field w-full bg-white">
+                      <option value="">-- Chọn sản phẩm --</option>
+                      {products.map(p => <option key={p.id} value={p.id}>{p.name} (Tồn tổng: {p.stockQuantity})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng nhập *</label>
+                    <input type="number" name="quantity" required min="1" max="10000" className="input-field w-full" placeholder="VD: 100" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
+                    <textarea name="remarks" className="input-field w-full resize-none" rows="2" placeholder="VD: Nhập lô hàng tháng 11..." />
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 text-blue-700 text-xs rounded-lg border border-blue-100">
+                  ℹ️ Lưu ý: Số lượng nhập sẽ động cộng dồn vào tồn kho tổng của sản phẩm và ghi nhận vào lịch sử kho.
+                </div>
+                <button type="submit" disabled={loadingAction} className="w-full mt-6 py-3 bg-secondary text-white rounded-xl hover:bg-secondary-dark font-semibold shadow-lg shadow-secondary/30 disabled:opacity-50 transition-colors cursor-pointer">
+                  {loadingAction ? 'Đang xử lý...' : 'Xác nhận nhập kho'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-/* ===================== PRODUCT MODAL ===================== */
-function ProductModal({ product, categories, brands, onClose, onSaved, loadSupportData }) {
+/* ===================== PRODUCT MODAL CONTENT ===================== */
+function ProductModalContent({ product, categories, brands, onClose, onSaved, loadSupportData, loadingAction, setLoadingAction }) {
   const [form, setForm] = useState({
     name: product?.name || '', description: product?.description || '',
     technicalSpecs: product?.technicalSpecs || '', ageRange: product?.ageRange || '',
@@ -326,83 +653,76 @@ function ProductModal({ product, categories, brands, onClose, onSaved, loadSuppo
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      fd.append('name', form.name);
-      fd.append('price', form.price);
-      if (form.description) fd.append('description', form.description);
-      if (form.technicalSpecs) fd.append('technicalSpecs', form.technicalSpecs);
-      if (form.ageRange) fd.append('ageRange', form.ageRange);
-      if (form.stockQuantity) fd.append('stockQuantity', form.stockQuantity);
-      if (form.categoryId) fd.append('categoryId', form.categoryId);
-      if (form.brandId) fd.append('brandId', form.brandId);
-      if (imageFile) fd.append('imageFile', imageFile);
+    setLoadingAction(true);
+    const data = new FormData();
+    Object.entries(form).forEach(([k, v]) => data.append(k, v));
+    if (imageFile) data.append('imageFile', imageFile);
 
-      const res = product ? await productApi.update(product.id, fd) : await productApi.create(fd);
-      if (res.success) { onSaved(); } else { alert(res.message || 'Lỗi lưu sản phẩm'); }
-    } catch (error) { alert(error.message || 'Lỗi lưu sản phẩm'); }
-    finally { setSaving(false); }
+    try {
+      const res = product ? await productApi.update(product.id, data) : await productApi.create(data);
+      if (res.success) onSaved();
+      else alert(res.message || 'Lỗi lưu sản phẩm');
+    } catch (err) { alert(err.message || 'Lỗi lưu sản phẩm'); }
+    finally { setLoadingAction(false); }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-xl font-bold text-primary-dark mb-6">{product ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Tên sản phẩm *</label>
+          <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field w-full" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Tên sản phẩm *</label>
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Giá (VNĐ) *</label>
-              <input type="number" required value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} className="input-field" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Tồn kho</label>
-              <input type="number" value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: +e.target.value })} className="input-field" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Danh mục</label>
-              <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="input-field cursor-pointer">
-                <option value="">-- Chọn --</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.categoryName || c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Thương hiệu</label>
-              <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })} className="input-field cursor-pointer">
-                <option value="">-- Chọn --</option>
-                {brands.map((b) => <option key={b.id} value={b.id}>{b.brandName || b.name}</option>)}
-              </select>
-            </div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Giá (VNĐ) *</label>
+            <input type="number" required min="1000" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} className="input-field w-full" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Độ tuổi</label>
-            <input value={form.ageRange} onChange={(e) => setForm({ ...form, ageRange: e.target.value })} placeholder="VD: 8-14" className="input-field" />
+            <label className="block text-sm font-medium text-gray-600 mb-1">Tồn kho</label>
+            <input type="number" min="0" value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: +e.target.value })} className="input-field w-full" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Danh mục *</label>
+            <select required value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="input-field w-full cursor-pointer">
+              <option value="">-- Chọn --</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.categoryName || c.name}</option>)}
+            </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Mô tả</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="input-field resize-none" />
+            <label className="block text-sm font-medium text-gray-600 mb-1">Thương hiệu *</label>
+            <select required value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })} className="input-field w-full cursor-pointer">
+              <option value="">-- Chọn --</option>
+              {brands.map((b) => <option key={b.id} value={b.id}>{b.brandName || b.name}</option>)}
+            </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Thông số kỹ thuật</label>
-            <input value={form.technicalSpecs} onChange={(e) => setForm({ ...form, technicalSpecs: e.target.value })} className="input-field" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Hình ảnh</label>
-            <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0])} className="input-field text-sm" />
-            {product?.imageUrl && !imageFile && <img src={product.imageUrl} alt="" className="mt-2 h-20 rounded-lg object-cover" />}
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={saving} className="btn-primary flex-1 py-2.5 cursor-pointer">{saving ? 'Đang lưu...' : 'Lưu'}</button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 cursor-pointer">Hủy</button>
-          </div>
-        </form>
-      </motion.div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Độ tuổi</label>
+          <input value={form.ageRange} onChange={(e) => setForm({ ...form, ageRange: e.target.value })} placeholder="VD: 8-14" className="input-field w-full" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Mô tả</label>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="input-field w-full resize-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Thông số kỹ thuật</label>
+          <input value={form.technicalSpecs} onChange={(e) => setForm({ ...form, technicalSpecs: e.target.value })} className="input-field w-full" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Hình ảnh {product ? '' : '*'}</label>
+          <input type="file" required={!product} accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0])} className="input-field w-full text-sm" />
+          {product?.imageUrl && !imageFile && <img src={product.imageUrl} alt="" className="mt-2 h-20 rounded-lg object-cover" />}
+        </div>
+        <div className="flex gap-3 pt-4 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 cursor-pointer">Hủy</button>
+          <button type="submit" disabled={loadingAction} className="btn-primary flex-1 py-3 cursor-pointer disabled:opacity-50">
+            {loadingAction ? 'Đang lưu...' : 'Lưu sản phẩm'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -445,60 +765,3 @@ function SimpleModal({ title, item, fields, onClose, onSave }) {
   );
 }
 
-/* ===================== ORDER ROW (Expandable) ===================== */
-function OrderRow({ order, onStatusChange, formatPrice, formatDate }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const STATUS_COLORS_LOCAL = {
-    Pending: 'bg-yellow-100 text-yellow-700',
-    Shipping: 'bg-blue-100 text-blue-600',
-    Done: 'bg-green-100 text-green-700',
-    Cancelled: 'bg-red-100 text-red-600',
-  };
-
-  return (
-    <div className={`transition-colors ${expanded ? 'bg-gray-50/80' : 'hover:bg-gray-50/50'}`}>
-      <div className="flex items-center gap-4 px-6 py-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <span className="text-xs text-gray-400 w-4">{expanded ? '▼' : '▶'}</span>
-        <span className="text-sm font-bold text-primary-dark w-16">#{order.id}</span>
-        <span className="text-sm text-gray-600 w-28">User #{order.userId}</span>
-        <span className="text-sm font-medium text-secondary flex-1">{formatPrice(order.totalAmount)}</span>
-        <span className="text-sm text-gray-500 w-24 hidden sm:block truncate" title={order.address}>{order.address || '—'}</span>
-        <select value={order.status} onChange={(e) => { e.stopPropagation(); onStatusChange(order.id, e.target.value); }}
-          onClick={(e) => e.stopPropagation()}
-          className={`text-xs font-semibold px-3 py-1.5 rounded-full border-none cursor-pointer ${STATUS_COLORS_LOCAL[order.status] || 'bg-gray-100 text-gray-600'}`}>
-          <option value="Pending">Pending</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="Shipping">Shipping</option>
-          <option value="Done">Done</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
-        <span className="text-xs text-gray-400 w-24 text-right hidden md:block">{formatDate(order.orderDate)}</span>
-      </div>
-      {expanded && order.items && order.items.length > 0 && (
-        <div className="px-6 pb-4 pl-16">
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead><tr className="bg-gray-50/80">
-                <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Sản phẩm</th>
-                <th className="text-center px-4 py-2 text-xs text-gray-400 font-medium">SL</th>
-                <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Đơn giá</th>
-                <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Thành tiền</th>
-              </tr></thead>
-              <tbody className="divide-y divide-gray-50">
-                {order.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="px-4 py-2 font-medium text-gray-700">{item.productName}</td>
-                    <td className="px-4 py-2 text-center text-gray-500">{item.quantity}</td>
-                    <td className="px-4 py-2 text-right text-gray-500">{formatPrice(item.price)}</td>
-                    <td className="px-4 py-2 text-right font-medium text-secondary">{formatPrice(item.price * item.quantity)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

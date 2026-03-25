@@ -1,28 +1,28 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authApi } from '../api/authApi';
 import { motion } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
+import api from '../api/axiosConfig';
 
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
+        setIsSubmitting(true);
         
         try {
-            // Gọi API Login
-            const response = await axios.post("https://localhost:7142/api/auth/login", {
-                email,
-                password
-            });
+            // Gọi API Login thông qua authApi (đã intercept trả về data)
+            const data = await authApi.login(email, password);
 
-            if (response.data.success) {
-                const { token, role, fullName } = response.data.data;
+            if (data.success) {
+                const { token, role, fullName } = data.data;
                 
                 // Lưu Token và thông tin User vào LocalStorage
                 localStorage.setItem("token", token);
@@ -40,21 +40,24 @@ const Login = () => {
                     navigate("/");
                 }
             } else {
-                setError(response.data.message);
+                setError(data.message);
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Lỗi kết nối Server");
+            const errMsg = err?.message || (typeof err === 'string' ? err : "Lỗi kết nối Server");
+            setError(errMsg);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleGoogleLogin = async (credentialResponse) => {
         try {
-            const response = await axios.post("https://localhost:7142/api/auth/google-login", {
+            const data = await api.post("/auth/google-login", {
                 IdToken: credentialResponse.credential
             });
 
-            if (response.data.success) {
-                const { token, role, fullName, email: userEmail } = response.data.data;
+            if (data.success) {
+                const { token, role, fullName, email: userEmail } = data.data;
                 
                 localStorage.setItem("token", token);
                 localStorage.setItem("user", JSON.stringify({ role, fullName, email: userEmail }));
@@ -67,10 +70,10 @@ const Login = () => {
                     navigate("/");
                 }
             } else {
-                setError(response.data.message);
+                setError(data.message);
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Lỗi đăng nhập Google");
+            setError(err.message || "Lỗi đăng nhập Google");
         }
     };
 
@@ -106,16 +109,16 @@ const Login = () => {
                         </div>
                         <div>
                             <div className="flex justify-between mb-1">
-                                <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
+                                <label className="block text-sm font-medium text-gray-700">Mật khẩu *</label>
                                 <Link to="/forgot-password" style={{ fontSize: "14px", color: "#007bff" }} className="hover:underline">Quên mật khẩu?</Link>
                             </div>
-                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required 
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength="6"
                                    className="input-field w-full" placeholder="••••••••" />
                         </div>
                     </div>
 
-                    <button type="submit" className="btn-primary w-full py-3 flex justify-center shadow-lg shadow-primary/30">
-                        Đăng nhập
+                    <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 flex justify-center shadow-lg shadow-primary/30 disabled:opacity-50 cursor-pointer">
+                        {isSubmitting ? 'Đang xác thực...' : 'Đăng nhập'}
                     </button>
 
                     <div className="relative my-4">
