@@ -30,10 +30,11 @@ function PageTransition({ children }) {
 function AppRoutes() {
   const location = useLocation();
   const isAuthPage = ['/login', '/register', '/reset-password', '/forgot-password'].includes(location.pathname);
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <div className="flex flex-col min-h-screen">
-      {!isAuthPage && <Header />}
+      {!isAuthPage && !isAdminPage && <Header />}
       <main className="flex-1">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -51,7 +52,7 @@ function AppRoutes() {
           </Routes>
         </AnimatePresence>
       </main>
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && !isAdminPage && <Footer />}
     </div>
   );
 }
