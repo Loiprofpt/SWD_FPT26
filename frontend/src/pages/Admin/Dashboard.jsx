@@ -1,21 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { productApi } from '../../api/productApi';
-
-const MOCK_STATS = [
-  { label: 'Doanh thu', value: '25.600.000đ', change: '+12%', color: 'bg-blue-50 text-blue-600' },
-  { label: 'Đơn hàng', value: '156', change: '+8%', color: 'bg-emerald-50 text-emerald-600' },
-  { label: 'Sản phẩm', value: '342', change: '+5', color: 'bg-violet-50 text-violet-600' },
-  { label: 'Khách hàng', value: '1.204', change: '+23', color: 'bg-amber-50 text-amber-600' },
-];
-
-const MOCK_ORDERS = [
-  { id: 1, customer: 'Nguyen Van A', total: 750000, status: 'Pending', date: '2026-03-20' },
-  { id: 2, customer: 'Tran Thi B', total: 1250000, status: 'Shipping', date: '2026-03-19' },
-  { id: 3, customer: 'Le Van C', total: 450000, status: 'Done', date: '2026-03-18' },
-  { id: 4, customer: 'Pham Thi D', total: 8500000, status: 'Pending', date: '2026-03-18' },
-  { id: 5, customer: 'Hoang Van E', total: 350000, status: 'Done', date: '2026-03-17' },
-];
+import { dashboardApi } from '../../api/dashboardApi';
+import { orderApi } from '../../api/orderApi';
 
 const TABS = ['Tổng quan', 'Đơn hàng', 'Sản phẩm'];
 
@@ -23,29 +10,69 @@ const STATUS_COLORS = {
   Pending: 'bg-warning/10 text-warning',
   Shipping: 'bg-blue-100 text-blue-600',
   Done: 'bg-success/10 text-success',
+  Cancelled: 'bg-danger/10 text-danger',
 };
 
 export default function Dashboard() {
   const [tab, setTab] = useState('Tổng quan');
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [stats, setStats] = useState([
+    { label: 'Doanh thu', value: '0đ', change: '', color: 'bg-blue-50 text-blue-600' },
+    { label: 'Đơn hàng', value: '0', change: '', color: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Sản phẩm', value: '0', change: '', color: 'bg-violet-50 text-violet-600' },
+    { label: 'Khách hàng', value: '0', change: '', color: 'bg-amber-50 text-amber-600' },
+  ]);
+
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+  const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : '';
 
   useEffect(() => {
-    if (tab === 'Sản phẩm') {
+    if (tab === 'Tổng quan') {
+      dashboardApi.getStats().then((data) => {
+        setStats([
+          { label: 'Doanh thu', value: formatPrice(data.totalRevenue || 0), change: '', color: 'bg-blue-50 text-blue-600' },
+          { label: 'Đơn hàng', value: (data.totalOrders || 0).toString(), change: '', color: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Sản phẩm', value: (data.totalProducts || 0).toString(), change: '', color: 'bg-violet-50 text-violet-600' },
+          { label: 'Khách hàng', value: (data.totalUsers || 0).toString(), change: '', color: 'bg-amber-50 text-amber-600' },
+        ]);
+      }).catch(console.error);
+      
+      orderApi.getAll().then((res) => {
+        if(res.success) setOrders(res.data.slice(0, 5));
+      }).catch(console.error);
+    } else if (tab === 'Đơn hàng') {
+      orderApi.getAll().then((res) => {
+        if(res.success) setOrders(res.data);
+      }).catch(console.error);
+    } else if (tab === 'Sản phẩm') {
       productApi.getAll().then((res) => {
-        if (res?.success) setProducts(res.data);
-      });
+        if(res.success) setProducts(res.data);
+      }).catch(console.error);
     }
   }, [tab]);
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const res = await orderApi.updateStatus(orderId, { status: newStatus });
+      if (res.success) {
+        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      } else {
+        alert(res.message || 'Lỗi cập nhật trạng thái');
+      }
+    } catch (error) {
+      alert(error.message || 'Lỗi cập nhật trạng thái');
+    }
+  };
 
   return (
     <div className="pt-24 pb-16 min-h-screen bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
+           initial={{ opacity: 0, y: 30 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.6 }}
+           className="mb-8"
         >
           <h1 className="text-3xl sm:text-4xl font-bold text-primary-dark">Admin Dashboard</h1>
           <p className="text-gray-400 mt-1">Quản lý cửa hàng STEM Shop</p>
@@ -77,7 +104,7 @@ export default function Dashboard() {
             >
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {MOCK_STATS.map((stat, i) => (
+                {stats.map((stat, i) => (
                   <motion.div
                     key={stat.label}
                     initial={{ opacity: 0, y: 20 }}
@@ -115,17 +142,17 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {MOCK_ORDERS.map((order) => (
+                      {orders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{order.id}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{order.customer}</td>
-                          <td className="px-6 py-4 text-sm font-medium">{formatPrice(order.total)}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">User #{order.userId}</td>
+                          <td className="px-6 py-4 text-sm font-medium">{formatPrice(order.totalAmount)}</td>
                           <td className="px-6 py-4">
-                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${STATUS_COLORS[order.status]}`}>
+                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
                               {order.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-400">{order.date}</td>
+                          <td className="px-6 py-4 text-sm text-gray-400">{formatDate(order.orderDate)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -161,22 +188,24 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {MOCK_ORDERS.map((order) => (
+                      {orders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{order.id}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{order.customer}</td>
-                          <td className="px-6 py-4 text-sm font-medium">{formatPrice(order.total)}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">User #{order.userId}</td>
+                          <td className="px-6 py-4 text-sm font-medium">{formatPrice(order.totalAmount)}</td>
                           <td className="px-6 py-4">
                             <select
-                              defaultValue={order.status}
-                              className="text-xs font-semibold px-3 py-1 rounded-full border-none cursor-pointer bg-gray-100"
+                              value={order.status}
+                              onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                              className={`text-xs font-semibold px-3 py-1 rounded-full border-none cursor-pointer ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}
                             >
-                              <option>Pending</option>
-                              <option>Shipping</option>
-                              <option>Done</option>
+                              <option value="Pending">Pending</option>
+                              <option value="Shipping">Shipping</option>
+                              <option value="Done">Done</option>
+                              <option value="Cancelled">Cancelled</option>
                             </select>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-400">{order.date}</td>
+                          <td className="px-6 py-4 text-sm text-gray-400">{formatDate(order.orderDate)}</td>
                           <td className="px-6 py-4">
                             <button className="text-sm text-secondary hover:text-secondary-dark transition-colors cursor-pointer">
                               Chi tiết
@@ -204,7 +233,7 @@ export default function Dashboard() {
                   <h3 className="font-bold text-primary-dark">Tất cả sản phẩm</h3>
                   <div className="flex gap-3">
                     <input placeholder="Tìm sản phẩm..." className="input-field w-48" />
-                    <button className="btn-primary text-sm py-2 px-4">Thêm mới</button>
+                    <button className="btn-primary text-sm py-2 px-4 cursor-pointer">Thêm mới</button>
                   </div>
                 </div>
                 <div className="overflow-x-auto">

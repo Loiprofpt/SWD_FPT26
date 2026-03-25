@@ -13,6 +13,7 @@ import Dashboard from './pages/Admin/Dashboard';
 import ResetPassword from './ResetPassword';
 import ForgotPassword from './ForgotPassword';
 import Profile from './pages/Profile';
+import PaymentResult from './pages/PaymentResult';
 
 function PageTransition({ children }) {
   return (
@@ -47,6 +48,7 @@ function AppRoutes() {
             <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
             <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
             <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+            <Route path="/payment/result" element={<PageTransition><PaymentResult /></PageTransition>} />
             <Route path="/admin" element={<PageTransition><Dashboard /></PageTransition>} />
           </Routes>
         </AnimatePresence>
