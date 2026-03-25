@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { productApi } from '../../api/productApi';
 import { dashboardApi } from '../../api/dashboardApi';
@@ -11,10 +11,41 @@ const TABS = ['Tổng quan', 'Đơn hàng', 'Sản phẩm', 'Danh mục', 'Thư�
 
 const STATUS_COLORS = {
   Pending: 'bg-yellow-100 text-yellow-700',
+  Confirmed: 'bg-purple-100 text-purple-700',
   Shipping: 'bg-blue-100 text-blue-600',
   Done: 'bg-green-100 text-green-700',
   Cancelled: 'bg-red-100 text-red-600',
 };
+
+/* ===================== TOAST HOOK ===================== */
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const toast = useCallback((msg, type = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+  }, []);
+  return { toasts, toast };
+}
+
+function ToastContainer({ toasts }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2">
+      <AnimatePresence>
+        {toasts.map(t => (
+          <motion.div key={t.id}
+            initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 60 }}
+            className={`flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl text-white text-sm font-medium ${
+              t.type === 'error' ? 'bg-red-500' : t.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+            }`}>
+            <span>{t.type === 'error' ? '❌' : t.type === 'warning' ? '⚠️' : '✅'}</span>
+            {t.msg}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [tab, setTab] = useState('Tổng quan');
@@ -23,12 +54,14 @@ export default function Dashboard() {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState([
     { label: 'Doanh thu', value: '0đ', color: 'bg-blue-50 text-blue-600' },
     { label: 'Đơn hàng', value: '0', color: 'bg-emerald-50 text-emerald-600' },
     { label: 'Sản phẩm', value: '0', color: 'bg-violet-50 text-violet-600' },
     { label: 'Khách hàng', value: '0', color: 'bg-amber-50 text-amber-600' },
   ]);
+  const { toasts, toast } = useToast();
 
   // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
@@ -44,68 +77,88 @@ export default function Dashboard() {
   const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : '';
 
   useEffect(() => {
-    if (tab === 'Tổng quan') {
-      dashboardApi.getStats().then((data) => {
-        setStats([
-          { label: 'Doanh thu', value: formatPrice(data.totalRevenue || 0), color: 'bg-blue-50 text-blue-600' },
-          { label: 'Đơn hàng', value: (data.totalOrders || 0).toString(), color: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Sản phẩm', value: (data.totalProducts || 0).toString(), color: 'bg-violet-50 text-violet-600' },
-          { label: 'Khách hàng', value: (data.totalUsers || 0).toString(), color: 'bg-amber-50 text-amber-600' },
-        ]);
-      }).catch(console.error);
-      orderApi.getAll().then((res) => { if (res.success) setOrders(res.data.slice(0, 5)); }).catch(console.error);
-    } else if (tab === 'Đơn hàng') {
-      orderApi.getAll().then((res) => { if (res.success) setOrders(res.data); }).catch(console.error);
-    } else if (tab === 'Sản phẩm') {
-      loadProducts();
-    } else if (tab === 'Danh mục') {
-      loadCategories();
-    } else if (tab === 'Thương hiệu') {
-      loadBrands();
-    } else if (tab === 'Kho hàng') {
-      loadWarehouses();
-    }
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        if (tab === 'Tổng quan') {
+          const [data, ordRes] = await Promise.all([
+            dashboardApi.getStats().catch(() => ({})),
+            orderApi.getAll().catch(() => ({ success: false, data: [] }))
+          ]);
+          setStats([
+            { label: 'Doanh thu', value: formatPrice(data.totalRevenue || 0), color: 'bg-blue-50 text-blue-600' },
+            { label: 'Đơn hàng', value: (data.totalOrders || 0).toString(), color: 'bg-emerald-50 text-emerald-600' },
+            { label: 'Sản phẩm', value: (data.totalProducts || 0).toString(), color: 'bg-violet-50 text-violet-600' },
+            { label: 'Khách hàng', value: (data.totalUsers || 0).toString(), color: 'bg-amber-50 text-amber-600' },
+          ]);
+          if (ordRes.success) setOrders(ordRes.data.slice(0, 5));
+        } else if (tab === 'Đơn hàng') {
+          const res = await orderApi.getAll();
+          if (res.success) setOrders(res.data);
+        } else if (tab === 'Sản phẩm') {
+          await loadProducts();
+        } else if (tab === 'Danh mục') {
+          await loadCategories();
+        } else if (tab === 'Thương hiệu') {
+          await loadBrands();
+        } else if (tab === 'Kho hàng') {
+          await loadWarehouses();
+        }
+      } catch (e) {
+        toast('Không thể kết nối server. Vui lòng kiểm tra backend!', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [tab]);
 
-  const loadProducts = () => { productApi.getAll().then((res) => { if (res.success) setProducts(res.data); }).catch(console.error); };
-  const loadCategories = () => { categoryApi.getAll().then((res) => { if (res.success) setCategories(res.data); }).catch(console.error); };
-  const loadBrands = () => { brandApi.getAll().then((res) => { if (res.success) setBrands(res.data); }).catch(console.error); };
-  const loadWarehouses = () => { warehouseApi.getAll().then((data) => setWarehouses(data || [])).catch(console.error); };
+  const loadProducts = async () => { const res = await productApi.getAll(); if (res.success) setProducts(res.data); };
+  const loadCategories = async () => { const res = await categoryApi.getAll(); if (res.success) setCategories(res.data); };
+  const loadBrands = async () => { const res = await brandApi.getAll(); if (res.success) setBrands(res.data); };
+  const loadWarehouses = async () => { const data = await warehouseApi.getAll(); setWarehouses(data || []); };
+  const refreshTab = () => setTab(t => { return t; }); // force re-trigger useEffect
+  const forceRefresh = useCallback(() => {
+    const cur = tab;
+    setTab('__temp');
+    setTimeout(() => setTab(cur), 0);
+  }, [tab]);
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const res = await orderApi.updateStatus(orderId, { status: newStatus });
       if (res.success) {
         setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-      } else { alert(res.message || 'Lỗi cập nhật'); }
-    } catch (error) { alert(error.message || 'Lỗi cập nhật'); }
+        toast(`Đơn #${orderId}: đổi trạng thái → ${newStatus}`, newStatus === 'Cancelled' ? 'warning' : 'success');
+      } else { toast(res.message || 'Lỗi cập nhật', 'error'); }
+    } catch (error) { toast(error.message || 'Lỗi cập nhật', 'error'); }
   };
 
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Xóa sản phẩm này?')) return;
     try {
       const res = await productApi.delete(id);
-      if (res.success) loadProducts();
-      else alert(res.message || 'Lỗi xóa');
-    } catch (error) { alert(error.message || 'Lỗi xóa sản phẩm'); }
+      if (res.success) { loadProducts(); toast('Xóa sản phẩm thành công!'); }
+      else toast(res.message || 'Lỗi xóa', 'error');
+    } catch (error) { toast(error.message || 'Lỗi xóa sản phẩm', 'error'); }
   };
 
   const handleDeleteCategory = async (id) => {
     if (!window.confirm('Xóa danh mục này?')) return;
     try {
       const res = await categoryApi.delete(id);
-      if (res.success) loadCategories();
-      else alert(res.message || 'Lỗi xóa');
-    } catch (error) { alert(error.message || 'Lỗi xóa danh mục'); }
+      if (res.success) { loadCategories(); toast('Xóa danh mục thành công!'); }
+      else toast(res.message || 'Lỗi xóa', 'error');
+    } catch (error) { toast(error.message || 'Lỗi xóa danh mục', 'error'); }
   };
 
   const handleDeleteBrand = async (id) => {
     if (!window.confirm('Xóa thương hiệu này?')) return;
     try {
       const res = await brandApi.delete(id);
-      if (res.success) loadBrands();
-      else alert(res.message || 'Lỗi xóa');
-    } catch (error) { alert(error.message || 'Lỗi xóa thương hiệu'); }
+      if (res.success) { loadBrands(); toast('Xóa thương hiệu thành công!'); }
+      else toast(res.message || 'Lỗi xóa', 'error');
+    } catch (error) { toast(error.message || 'Lỗi xóa thương hiệu', 'error'); }
   };
 
   const handleSaveCategory = async (e) => {
@@ -115,8 +168,9 @@ export default function Dashboard() {
     const data = Object.fromEntries(formData.entries());
     try {
       const res = editCategory ? await categoryApi.update(editCategory.id, data) : await categoryApi.create(data);
-      if (res.success) { setShowCategoryModal(false); loadCategories(); } else { alert(res.message || 'Lỗi lưu danh mục'); }
-    } catch (error) { alert(error.message || 'Lỗi lưu danh mục'); }
+      if (res.success) { setShowCategoryModal(false); loadCategories(); toast(editCategory ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!'); }
+      else toast(res.message || 'Lỗi lưu danh mục', 'error');
+    } catch (error) { toast(error.message || 'Lỗi lưu danh mục', 'error'); }
     finally { setLoadingAction(false); }
   };
 
@@ -127,8 +181,9 @@ export default function Dashboard() {
     const data = Object.fromEntries(formData.entries());
     try {
       const res = editBrand ? await brandApi.update(editBrand.id, data) : await brandApi.create(data);
-      if (res.success) { setShowBrandModal(false); loadBrands(); } else { alert(res.message || 'Lỗi lưu thương hiệu'); }
-    } catch (error) { alert(error.message || 'Lỗi lưu thương hiệu'); }
+      if (res.success) { setShowBrandModal(false); loadBrands(); toast(editBrand ? 'Cập nhật thương hiệu thành công!' : 'Thêm thương hiệu thành công!'); }
+      else toast(res.message || 'Lỗi lưu thương hiệu', 'error');
+    } catch (error) { toast(error.message || 'Lỗi lưu thương hiệu', 'error'); }
     finally { setLoadingAction(false); }
   };
 
@@ -138,9 +193,9 @@ export default function Dashboard() {
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
     try {
-      const res = await warehouseApi.create(data);
-      if (res.success) { setShowWarehouseModal(false); loadWarehouses(); } else { alert(res.message || 'Lỗi tạo kho'); }
-    } catch (error) { alert(error.message || 'Lỗi tạo kho'); }
+      await warehouseApi.create(data);
+      setShowWarehouseModal(false); loadWarehouses(); toast('Tạo kho hàng thành công! 🏭');
+    } catch (error) { toast(error.message || 'Lỗi tạo kho', 'error'); }
     finally { setLoadingAction(false); }
   };
 
@@ -149,19 +204,25 @@ export default function Dashboard() {
     setLoadingAction(true);
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
-    data.quantity = parseInt(data.quantity); // Ensure quantity is a number
+    data.quantity = parseInt(data.quantity);
     try {
-      const res = await warehouseApi.importStock(data);
-      if (res.success) { setShowImportModal(false); loadWarehouses(); loadProducts(); } else { alert(res.message || 'Lỗi nhập hàng'); }
-    } catch (error) { alert(error.message || 'Lỗi nhập hàng'); }
+      await warehouseApi.importStock(data);
+      setShowImportModal(false); loadWarehouses(); loadProducts(); toast(`Nhập ${data.quantity} sản phẩm vào kho thành công! 📦`);
+    } catch (error) { toast(error.message || 'Lỗi nhập hàng', 'error'); }
     finally { setLoadingAction(false); }
   };
   return (
     <div className="pt-24 pb-16 min-h-screen bg-surface">
+      <ToastContainer toasts={toasts} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-primary-dark">Admin Dashboard</h1>
-          <p className="text-gray-400 mt-1">Quản lý cửa hàng STEM Shop</p>
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-primary-dark">Admin Dashboard</h1>
+            <p className="text-gray-400 mt-1">Quản lý cửa hàng STEM Shop</p>
+          </div>
+          <button onClick={forceRefresh} className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow text-sm text-gray-500 hover:text-primary hover:shadow-md transition-all cursor-pointer">
+            <span className={loading ? 'animate-spin' : ''}>&#8635;</span> Làm mới
+          </button>
         </motion.div>
 
         {/* Tabs */}
@@ -173,6 +234,18 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+
+        <AnimatePresence mode="wait">
+          {loading && (
+            <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex items-center justify-center py-20 text-primary">
+              <svg className="animate-spin h-8 w-8" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {/* ========== TỔNG QUAN ========== */}
