@@ -28,7 +28,7 @@ const Profile = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await axios.get("https://localhost:7142/api/users/profile", {
+                const response = await axios.get("/api/users/profile", {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (response.data.success) {
@@ -66,7 +66,7 @@ const Profile = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await axios.put("https://localhost:7142/api/users/profile", {
+            const response = await axios.put("/api/users/profile", {
                 fullName: profile.fullName,
                 phoneNumber: profile.phoneNumber
             }, {
@@ -106,7 +106,7 @@ const Profile = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await axios.post("https://localhost:7142/api/auth/change-password", {
+            const response = await axios.post("/api/auth/change-password", {
                 oldPassword: passwordData.oldPassword,
                 newPassword: passwordData.newPassword
             }, {

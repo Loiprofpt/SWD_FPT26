@@ -10,7 +10,7 @@ const ForgotPassword = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     // Đảm bảo PORT này khớp với Backend (7142)
-    const API_URL = "https://localhost:7142/api/auth/forgot-password";
+    const API_URL = "/api/auth/forgot-password";
 
     const handleSubmit = async (e) => {
         e.preventDefault();

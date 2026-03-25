@@ -16,7 +16,7 @@ const Login = () => {
         
         try {
             // Gọi API Login
-            const response = await axios.post("https://localhost:7142/api/auth/login", {
+            const response = await axios.post("/api/auth/login", {
                 email,
                 password
             });
@@ -49,7 +49,7 @@ const Login = () => {
 
     const handleGoogleLogin = async (credentialResponse) => {
         try {
-            const response = await axios.post("https://localhost:7142/api/auth/google-login", {
+            const response = await axios.post("/api/auth/google-login", {
                 IdToken: credentialResponse.credential
             });
 

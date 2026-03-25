@@ -18,7 +18,7 @@ const ResetPassword = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     // Thay đổi PORT này theo port thực tế của Backend bạn (ví dụ 5000, 5123, 7000...)
-    const API_URL = "https://localhost:7142/api/auth/reset-password"; 
+    const API_URL = "/api/auth/reset-password"; 
 
     useEffect(() => {
         if (!token || !email) {

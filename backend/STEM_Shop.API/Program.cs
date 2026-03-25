@@ -103,6 +103,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<STEM_Shop_DBContext>();
+        await context.Database.EnsureCreatedAsync();
         await DbSeeder.SeedAsync(context);
     }
     catch (System.Exception ex)
