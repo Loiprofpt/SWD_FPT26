@@ -24,7 +24,11 @@ namespace STEM_Shop.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllWarehouses()
         {
-            var list = await _context.Warehouses.ToListAsync();
+            var list = await _context.Warehouses
+                .Include(w => w.WarehouseStocks)        
+                    .ThenInclude(ws => ws.Product)        
+                .ToListAsync();
+
             return Ok(list);
         }
 
