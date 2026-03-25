@@ -1,0 +1,72 @@
+
+> temp-app@0.0.0 lint
+> eslint .
+
+
+D:\PRU_project\SWD_FPT26\frontend\src\App.jsx
+  2:27  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\ForgotPassword.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\ResetPassword.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\components\Footer.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\components\Header.jsx
+   3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  20:22  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  29:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  27 |
+  28 |     useEffect(() => {
+> 29 |         checkUser();
+     |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |         
+  31 |         // Lắng nghe sự kiện custom từ Login.jsx để cập nhật ngay lập tức
+  32 |         window.addEventListener("storage", checkUser);  react-hooks/set-state-in-effect
+
+D:\PRU_project\SWD_FPT26\frontend\src\components\ProductCard.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Admin\Dashboard.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Cart.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Checkout.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Home.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Login.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\ProductDetail.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Products.jsx
+   3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                    no-unused-vars
+  15:24  error  'setSearchParams' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Profile.jsx
+    2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   94:30  error  'e' is defined but never used                                                  no-unused-vars
+   94:33  error  Empty block statement                                                          no-empty
+  133:18  error  'error' is defined but never used                                              no-unused-vars
+
+D:\PRU_project\SWD_FPT26\frontend\src\pages\Register.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+✖ 21 problems (21 errors, 0 warnings)
+

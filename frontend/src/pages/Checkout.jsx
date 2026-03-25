@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import useCartStore from '../store/useCartStore';
 import useAuthStore from '../store/useAuthStore';
 import { orderApi } from '../api/orderApi';
+import api from '../api/axiosConfig';
 
 const PAYMENT_METHODS = [
   { id: 'COD', label: 'Thanh toán khi nhận hàng (COD)', desc: 'Trả tiền mặt khi nhận hàng' },
@@ -31,19 +32,26 @@ export default function Checkout() {
     }
     setLoading(true);
     try {
-      await orderApi.create({
+      // 1. Đồng bộ giỏ hàng với backend
+      await api.delete('/carts').catch(()=> {}); // Xóa giỏ hàng cũ nếu có
+      
+      for (const item of items) {
+        await api.post('/carts/items', { productId: item.id, quantity: item.quantity });
+      }
+
+      // 2. Tạo đơn hàng từ backend cart
+      const response = await orderApi.create({
         address: form.address,
-        paymentMethod: payment,
-        items: items.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-        })),
       });
-      setSuccess(true);
-      clearCart();
-    } catch {
-      setSuccess(true);
-      clearCart();
+      
+      if (response && response.success) {
+        setSuccess(true);
+        clearCart();
+      } else {
+        alert(response?.message || 'Đặt hàng thất bại, vui lòng thử lại.');
+      }
+    } catch (error) {
+      alert(error?.message || 'Có lỗi xảy ra trong quá trình kết nối.');
     } finally {
       setLoading(false);
     }
