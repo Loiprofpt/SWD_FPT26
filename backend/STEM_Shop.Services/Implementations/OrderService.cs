@@ -59,6 +59,56 @@ namespace STEM_Shop.Services.Implementations
 
                 _context.OrderDetails.AddRange(details);
 
+<<<<<<< Updated upstream
+=======
+                    // A. Trừ tổng tồn kho ở bảng Product
+                    product.StockQuantity -= item.Quantity;
+
+                    // B. Trừ tồn kho tại các Warehouse (nếu có)
+                    var warehouseStocks = await _context.WarehouseStocks
+                        .Where(ws => ws.ProductId == item.ProductId && (ws.Quantity ?? 0) > 0)
+                        .OrderByDescending(ws => ws.Quantity)
+                        .ToListAsync();
+
+                    if (warehouseStocks.Any())
+                    {
+                        int remainingToFulfill = item.Quantity;
+                        foreach (var ws in warehouseStocks)
+                        {
+                            if (remainingToFulfill <= 0) break;
+
+                            int deductAmount = Math.Min(ws.Quantity ?? 0, remainingToFulfill);
+                            ws.Quantity = (ws.Quantity ?? 0) - deductAmount;
+                            remainingToFulfill -= deductAmount;
+
+                            _context.InventoryLogs.Add(new InventoryLog
+                            {
+                                ProductId = item.ProductId,
+                                WarehouseId = ws.WarehouseId,
+                                Type = "OUT",
+                                Quantity = deductAmount,
+                                LogDate = DateTime.Now,
+                                Note = $"Xuất kho cho đơn hàng #{order.Id}"
+                            });
+                        }
+                    }
+
+                    // D. Tạo OrderDetail
+                    var detail = new OrderDetail
+                    {
+                        OrderId = order.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        Price = product.Price
+                    };
+                    _context.OrderDetails.Add(detail);
+
+                    totalCalculated += (product.Price * item.Quantity);
+                }
+
+                // 3. Cập nhật lại tổng tiền thực tế và xóa giỏ hàng
+                order.TotalAmount = totalCalculated;
+>>>>>>> Stashed changes
                 _context.CartItems.RemoveRange(cart.CartItems);
 
                 await _context.SaveChangesAsync();

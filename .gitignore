@@ -1,45 +1,30 @@
-# ======================
-# Visual Studio / .NET
-# ======================
+# Backend
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/*.suo
+backend/**/.vs/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# IDE
 .vs/
-[Bb]in/
-[Oo]bj/
-*.user
-*.suo
-*.opensdf
-*.sdf
-*.cachefile
-*.db
-*.dll
-*.pdb
-*.exe
-
-# Build results
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-
-# User specific
-*.rsuser
-*.userosscache
-*.sln.docstates
-
-# ======================
-# VS Code
-# ======================
 .vscode/
+*.swp
+*.swo
+*~
 
-# ======================
-# Appsettings (sensitive)
-# ======================
-appsettings.Development.json
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
 
-# ======================
-# Frontend (React / Node)
-# ======================
-node_modules/
-dist/
-build/
-.env
-.vite/
+# Logs
+*.log
+
+# Temp
+*.tmp
