@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using STEM_Shop.Data.Context;
 using STEM_Shop.Data.Models;
@@ -25,11 +25,29 @@ namespace STEM_Shop.API.Controllers
         public async Task<IActionResult> GetAllWarehouses()
         {
             var list = await _context.Warehouses
-                .Include(w => w.WarehouseStocks)        
-                    .ThenInclude(ws => ws.Product)        
+                .Include(w => w.WarehouseStocks)
+                    .ThenInclude(ws => ws.Product)
                 .ToListAsync();
 
-            return Ok(list);
+            var result = list.Select(w => new
+            {
+                id = w.Id,
+                warehouseName = w.WarehouseName,
+                location = w.Location,
+                warehouseStocks = w.WarehouseStocks.Select(ws => new
+                {
+                    id = ws.Id,
+                    productId = ws.ProductId,
+                    quantity = ws.Quantity,
+                    product = ws.Product == null ? null : new
+                    {
+                        id = ws.Product.Id,
+                        name = ws.Product.Name
+                    }
+                }).ToList()
+            }).ToList();
+
+            return Ok(result);
         }
 
         // 2. Tạo kho mới

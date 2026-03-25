@@ -478,6 +478,13 @@ export default function Dashboard() {
                       )}
                     </div>
                   ))}
+                  {warehouses.length === 0 && (
+                    <div className="col-span-2 py-16 text-center text-gray-400">
+                      <div className="text-4xl mb-3">🏭</div>
+                      <p className="font-medium">Chưa có kho hàng nào</p>
+                      <p className="text-sm mt-1">Bấm "+ Thêm Kho" để tạo kho đầu tiên.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
