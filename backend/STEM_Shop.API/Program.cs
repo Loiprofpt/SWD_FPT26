@@ -13,7 +13,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 // 1. Add Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+       
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 
 // 2. Config CORS (Cho phép Frontend gọi API)
 builder.Services.AddCors(options =>
@@ -124,7 +130,7 @@ if (app.Environment.IsDevelopment() || true) // Luôn bật Swagger để dễ t
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection();   
 app.UseCors("AllowFrontend"); // Kích hoạt CORS
 app.UseAuthentication(); // Nếu có cấu hình Auth
 app.UseAuthorization();
