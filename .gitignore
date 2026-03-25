@@ -28,3 +28,6 @@ desktop.ini
 
 # Temp
 *.tmp
+lint_log.txt
+*_utf8.txt
+*_constraints.txt

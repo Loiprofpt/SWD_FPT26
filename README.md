@@ -23,8 +23,14 @@ Website bán hàng STEM (Science, Technology, Engineering, Mathematics) với đ
 ### Bước 1: Tạo Database
 
 1. Mở **SSMS**, kết nối vào SQL Server local (`localhost`, User: `sa`, Pass: `123456`).
-2. Mở file `DataBase/STEM_Shop_DB.sql`.
-3. Nhấn **Execute (F5)** để tạo Database + dữ liệu mẫu.
+2. Mở file `DataBase/STEM_Shop_DB.sql` → Nhấn **Execute (F5)** để tạo Database + dữ liệu mẫu.
+3. Mở file `backend/CREATE_CARTS_TABLES.sql` → **Execute (F5)** để tạo bảng Carts & CartItems.
+4. Chạy thêm lệnh SQL sau để bổ sung cột Phone & Note cho bảng Orders:
+
+```sql
+USE [STEM_Shop_DB];
+ALTER TABLE Orders ADD Phone NVARCHAR(20) NULL, Note NVARCHAR(500) NULL;
+```
 
 ### Bước 2: Chạy Backend
 
