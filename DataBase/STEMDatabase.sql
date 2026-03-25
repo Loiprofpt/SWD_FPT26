@@ -99,3 +99,46 @@ VALUES ('admin@gmail.com', '123456', 'Mr Admin', 1);
 
 INSERT INTO Products (Name, Price, StockQuantity, CategoryId, BrandId)
 VALUES (N'Arduino Uno R3', 250000, 100, 2, 1);
+
+
+////////////////////////////////////////////////////////////////////////////
+
+USE [STEM_Shop_DB]; -- Đảm bảo bạn đang trỏ đúng vào database của project
+GO
+
+-- 1. Tạo bảng Carts (Giỏ hàng)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Carts' and xtype='U')
+BEGIN
+    CREATE TABLE Carts (
+        Id INT IDENTITY(1,1) NOT NULL,
+        UserId INT NOT NULL,
+        CONSTRAINT PK_Carts PRIMARY KEY CLUSTERED (Id),
+        CONSTRAINT FK_Cart_User FOREIGN KEY (UserId) REFERENCES Users(Id)
+    );
+    PRINT 'Đã tạo bảng Carts thành công.';
+END
+ELSE
+BEGIN
+    PRINT 'Bảng Carts đã tồn tại.';
+END
+GO
+
+-- 2. Tạo bảng CartItems (Chi tiết giỏ hàng)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='CartItems' and xtype='U')
+BEGIN
+    CREATE TABLE CartItems (
+        Id INT IDENTITY(1,1) NOT NULL,
+        CartId INT NOT NULL,
+        ProductId INT NOT NULL,
+        Quantity INT NOT NULL DEFAULT 1,
+        CONSTRAINT PK_CartItems PRIMARY KEY CLUSTERED (Id),
+        CONSTRAINT FK_CartItem_Cart FOREIGN KEY (CartId) REFERENCES Carts(Id) ON DELETE CASCADE, -- Carts bị xóa thì CartItems bay theo
+        CONSTRAINT FK_CartItem_Product FOREIGN KEY (ProductId) REFERENCES Products(Id) ON DELETE CASCADE
+    );
+    PRINT 'Đã tạo bảng CartItems thành công.';
+END
+ELSE
+BEGIN
+    PRINT 'Bảng CartItems đã tồn tại.';
+END
+GO
