@@ -58,35 +58,39 @@ namespace STEM_Shop.Services.Implementations
                         throw new Exception($"Sản phẩm '{product.Name}' không đủ số lượng trong tổng kho (Còn {product.StockQuantity}).");
                     }
 
-                    // Tìm kho cụ thể còn đủ hàng (Ưu tiên kho có nhiều hàng nhất)
-                    var warehouseStock = await _context.WarehouseStocks
-                        .Where(ws => ws.ProductId == item.ProductId && ws.Quantity >= item.Quantity)
-                        .OrderByDescending(ws => ws.Quantity)
-                        .FirstOrDefaultAsync();
-
-                    if (warehouseStock == null)
-                    {
-                        throw new Exception($"Sản phẩm '{product.Name}' hiện không có đủ số lượng trong bất kỳ kho riêng lẻ nào.");
-                    }
-
                     // A. Trừ tổng tồn kho ở bảng Product
                     product.StockQuantity -= item.Quantity;
 
-                    // B. Trừ tồn kho tại Warehouse cụ thể
-                    warehouseStock.Quantity -= item.Quantity;
+                    // B. Trừ tồn kho tại các Warehouse (nếu có bản ghi)
+                    var warehouseStocks = await _context.WarehouseStocks
+                        .Where(ws => ws.ProductId == item.ProductId && (ws.Quantity ?? 0) > 0)
+                        .OrderByDescending(ws => ws.Quantity)
+                        .ToListAsync();
 
-                    // C. Ghi Log biến động kho (Xuất kho - OUT)
-                    _context.InventoryLogs.Add(new InventoryLog
+                    if (warehouseStocks.Any())
                     {
-                        ProductId = item.ProductId,
-                        WarehouseId = warehouseStock.WarehouseId,
-                        Type = "OUT",
-                        Quantity = item.Quantity,
-                        LogDate = DateTime.Now,
-                        Note = $"Xuất kho cho đơn hàng #{order.Id}"
-                    });
+                        int remainingToFulfill = item.Quantity;
+                        foreach (var ws in warehouseStocks)
+                        {
+                            if (remainingToFulfill <= 0) break;
 
-                    // D. Tạo OrderDetail
+                            int deductAmount = Math.Min(ws.Quantity ?? 0, remainingToFulfill);
+                            ws.Quantity = (ws.Quantity ?? 0) - deductAmount;
+                            remainingToFulfill -= deductAmount;
+
+                            _context.InventoryLogs.Add(new InventoryLog
+                            {
+                                ProductId = item.ProductId,
+                                WarehouseId = ws.WarehouseId,
+                                Type = "OUT",
+                                Quantity = deductAmount,
+                                LogDate = DateTime.Now,
+                                Note = $"Xuất kho cho đơn hàng #{order.Id}"
+                            });
+                        }
+                    }
+
+                    // C. Tạo OrderDetail
                     var detail = new OrderDetail
                     {
                         OrderId = order.Id,
@@ -212,6 +216,7 @@ namespace STEM_Shop.Services.Implementations
 
         public async Task<ApiResponse<OrderResponse>> UpdateOrderAsync(int orderId, UpdateOrderRequest request)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var order = await _context.Orders
@@ -222,12 +227,51 @@ namespace STEM_Shop.Services.Implementations
                 if (order == null) return new ApiResponse<OrderResponse> { Success = false, Message = "Không tìm thấy" };
 
                 if (!string.IsNullOrWhiteSpace(request.Address)) order.Address = request.Address;
-                if (!string.IsNullOrWhiteSpace(request.Status)) order.Status = request.Status;
+
+                // Nếu Admin chuyển trạng thái sang Cancelled → hoàn kho
+                if (!string.IsNullOrWhiteSpace(request.Status))
+                {
+                    bool isCancelling = request.Status == "Cancelled" && order.Status != "Cancelled";
+
+                    order.Status = request.Status;
+
+                    if (isCancelling)
+                    {
+                        foreach (var detail in order.OrderDetails)
+                        {
+                            if (detail.ProductId.HasValue)
+                            {
+                                var product = await _context.Products.FindAsync(detail.ProductId);
+                                if (product != null) product.StockQuantity += detail.Quantity ?? 0;
+
+                                var ws = await _context.WarehouseStocks.FirstOrDefaultAsync(x => x.ProductId == detail.ProductId);
+                                if (ws != null)
+                                {
+                                    ws.Quantity = (ws.Quantity ?? 0) + (detail.Quantity ?? 0);
+                                    _context.InventoryLogs.Add(new InventoryLog
+                                    {
+                                        ProductId = detail.ProductId,
+                                        WarehouseId = ws.WarehouseId,
+                                        Type = "IN",
+                                        Quantity = detail.Quantity,
+                                        LogDate = DateTime.Now,
+                                        Note = $"Admin hoàn kho - hủy đơn #{order.Id}"
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
 
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return new ApiResponse<OrderResponse> { Success = true, Data = MapToOrderResponse(order) };
             }
-            catch (Exception ex) { return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message }; }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new ApiResponse<OrderResponse> { Success = false, Message = ex.Message };
+            }
         }
 
         public async Task<ApiResponse<OrderResponse>> UpdateMyOrderAsync(int userId, int orderId, UpdateMyOrderRequest request)

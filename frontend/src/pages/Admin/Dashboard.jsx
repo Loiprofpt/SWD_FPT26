@@ -164,35 +164,11 @@ export default function Dashboard() {
             <motion.div key="orders" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
               <div className="card overflow-hidden">
                 <div className="p-6 border-b border-gray-100"><h3 className="font-bold text-primary-dark">Tất cả đơn hàng ({orders.length})</h3></div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead><tr className="bg-gray-50">
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">ID</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Khách hàng</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Tổng tiền</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Trạng thái</th>
-                      <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase">Ngày</th>
-                    </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {orders.map((order) => (
-                        <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-primary-dark">#{order.id}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">User #{order.userId}</td>
-                          <td className="px-6 py-4 text-sm font-medium">{formatPrice(order.totalAmount)}</td>
-                          <td className="px-6 py-4">
-                            <select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border-none cursor-pointer ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
-                              <option value="Pending">Pending</option>
-                              <option value="Shipping">Shipping</option>
-                              <option value="Done">Done</option>
-                              <option value="Cancelled">Cancelled</option>
-                            </select>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-400">{formatDate(order.orderDate)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="divide-y divide-gray-50">
+                  {orders.map((order) => (
+                    <OrderRow key={order.id} order={order} onStatusChange={handleStatusChange} formatPrice={formatPrice} formatDate={formatDate} />
+                  ))}
+                  {orders.length === 0 && <div className="p-8 text-center text-gray-400">Chưa có đơn hàng nào.</div>}
                 </div>
               </div>
             </motion.div>
@@ -465,6 +441,64 @@ function SimpleModal({ title, item, fields, onClose, onSave }) {
           </div>
         </form>
       </motion.div>
+    </div>
+  );
+}
+
+/* ===================== ORDER ROW (Expandable) ===================== */
+function OrderRow({ order, onStatusChange, formatPrice, formatDate }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const STATUS_COLORS_LOCAL = {
+    Pending: 'bg-yellow-100 text-yellow-700',
+    Shipping: 'bg-blue-100 text-blue-600',
+    Done: 'bg-green-100 text-green-700',
+    Cancelled: 'bg-red-100 text-red-600',
+  };
+
+  return (
+    <div className={`transition-colors ${expanded ? 'bg-gray-50/80' : 'hover:bg-gray-50/50'}`}>
+      <div className="flex items-center gap-4 px-6 py-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <span className="text-xs text-gray-400 w-4">{expanded ? '▼' : '▶'}</span>
+        <span className="text-sm font-bold text-primary-dark w-16">#{order.id}</span>
+        <span className="text-sm text-gray-600 w-28">User #{order.userId}</span>
+        <span className="text-sm font-medium text-secondary flex-1">{formatPrice(order.totalAmount)}</span>
+        <span className="text-sm text-gray-500 w-24 hidden sm:block truncate" title={order.address}>{order.address || '—'}</span>
+        <select value={order.status} onChange={(e) => { e.stopPropagation(); onStatusChange(order.id, e.target.value); }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border-none cursor-pointer ${STATUS_COLORS_LOCAL[order.status] || 'bg-gray-100 text-gray-600'}`}>
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Shipping">Shipping</option>
+          <option value="Done">Done</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <span className="text-xs text-gray-400 w-24 text-right hidden md:block">{formatDate(order.orderDate)}</span>
+      </div>
+      {expanded && order.items && order.items.length > 0 && (
+        <div className="px-6 pb-4 pl-16">
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="bg-gray-50/80">
+                <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Sản phẩm</th>
+                <th className="text-center px-4 py-2 text-xs text-gray-400 font-medium">SL</th>
+                <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Đơn giá</th>
+                <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Thành tiền</th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-50">
+                {order.items.map((item, idx) => (
+                  <tr key={idx}>
+                    <td className="px-4 py-2 font-medium text-gray-700">{item.productName}</td>
+                    <td className="px-4 py-2 text-center text-gray-500">{item.quantity}</td>
+                    <td className="px-4 py-2 text-right text-gray-500">{formatPrice(item.price)}</td>
+                    <td className="px-4 py-2 text-right font-medium text-secondary">{formatPrice(item.price * item.quantity)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

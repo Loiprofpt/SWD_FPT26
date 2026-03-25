@@ -8,6 +8,7 @@ import api from '../api/axiosConfig';
 
 const PAYMENT_METHODS = [
   { id: 'COD', label: 'Thanh toán khi nhận hàng (COD)', desc: 'Trả tiền mặt khi nhận hàng', icon: '💵' },
+  { id: 'VNPay', label: 'VNPay', desc: 'Thanh toán qua cổng VNPay (QR / ATM / Visa)', icon: '💳' },
   { id: 'ATM', label: 'Chuyển khoản ngân hàng', desc: 'Chuyển khoản qua ATM/Internet Banking', icon: '🏦' },
   { id: 'Momo', label: 'Ví Momo', desc: 'Thanh toán qua ví điện tử Momo', icon: '📱' },
 ];
